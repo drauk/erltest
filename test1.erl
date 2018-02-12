@@ -4,10 +4,13 @@
 % Based on http://erlang.org/doc/getting_started/seq_prog.html
 
 -module(test1).
+
 -export([double/1, f/1]).
 -export([tconv/3]).
 -export([newcol/4, blendcol/2]).
 -export([listmax/1]).
+-export([listrev/1]).
+-export([monthdays/2]).
 
 %==============================================================================
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -101,7 +104,10 @@ blue_blend(#{ blue := SV, alpha := SA }, #{ blue := DV, alpha := DA }) ->
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % The 3-parameter blendcol is local. The 2-parameter version is exported.
-% These assignments show that maps are _not_ immutable!
+% These assignments suggest that maps are not immutable!
+% This is called "updating maps".
+% However, it is just a local copy of the _value_ of the map.
+% See http://erlang.org/doc/reference_manual/expressions.html#map_expressions
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 blendcol(S, D, A) when A > 0.0 ->
     D#{
@@ -114,7 +120,7 @@ blendcol(_, D, _) ->
     D#{ red := 0.0, green := 0.0, blue := 0.0, alpha := 0.0 }.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% The exported 2-parameter version.
+% The two-parameter export version.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 blendcol(S, D) ->
     blendcol(S, D, alpha_blend(S, D)).
@@ -124,6 +130,7 @@ blendcol(S, D) ->
 % Test:
 % 2> test1:listmax([7,6,5,1,4,54,64.2,3]).
 % 64.2
+% There is a lists library: http://erlang.org/doc/man/lists.html
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % The two-parameter version.
@@ -141,12 +148,83 @@ listmax([X | L], Y) when X > Y ->
 % remove X from the list, and keep Y in the first position.
 % NOTE: This gives a compilation warning because X is not used.
 %   test1.erl:138: Warning: variable 'X' is unused
+% It's very lucky that this is not a fatal error as it is in Golang.
+% Erlang would be totally unusable if unused variables were forbidden.
 listmax([X | L], Y) ->
     listmax(L, Y).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% The one-parameter version.
-% Apparently the maximum of the empty list is undefined!
+% The one-parameter export version.
+% The maximum of the empty list is undefined. (Not a bug!)
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 listmax([X | L]) ->
     listmax(L, X).
+
+%==============================================================================
+% List reversal function.
+% Test:
+% 1> test1:listrev([-1, 7, 9.2, -3.3]).
+% [-3.3,9.2,7,-1]
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% The two-parameter version.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Move each element X so that it is before all previously removed elements R.
+listrev([X | L], R) ->
+    listrev(L, [X | R]);
+listrev([], R) ->
+    R.
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% The one-parameter export version.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+listrev(L) ->
+    listrev(L, []).
+
+%==============================================================================
+% Compute the number of days in a given year/month.
+% Use built-in function trunc/1.
+% In the if-clause for monthdays/2, the function is_div/2 can't be used.
+% test1.erl:201: call to local/imported function is_div/2 is illegal in guard
+% I don't know where this arbitrary-looking rule comes from.
+
+is_div_unused(X, N) ->
+    if is_float(N) andalso N > 0 ->
+        false;
+    true ->
+        trunc(X/N) * N == X
+    end.
+
+% The following macro is also not accepted in the if-clause for Leapmonth.
+% test1.erl:206: illegal guard expression
+-define(is_div(X, N), (is_float(N) andalso N > 0 andalso trunc(X/N) * N == X)).
+% -define(is_div(X, N), (is_float(N) and N > 0 and trunc(X/N) * N == X)).
+
+monthdays(Y, M) ->
+    Leapmonth = if
+        trunc(Y/400) * 400 == Y ->
+            leapT;
+        trunc(Y/100) * 100 == Y ->
+            leapF;
+%        is_div(Y, 4) ->
+        trunc(Y/4) * 4 == Y ->
+            leapT;
+        true ->
+            leapF
+    end,
+
+    case M of
+        1 -> 31;
+        2 when Leapmonth == leapT -> 29;
+        2 -> 28;
+        3 -> 31;
+        4 -> 30;
+        5 -> 31;
+        6 -> 30;
+        7 -> 31;
+        8 -> 31;
+        9 -> 30;
+        10 -> 31;
+        11 -> 30;
+        12 -> 31
+    end.
