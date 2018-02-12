@@ -35,9 +35,7 @@ f(N) ->
     N * f(N-1).
 
 %==============================================================================
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Convert temperature.
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 tconv(T, c, f) ->
     (T * 9) / 5 + 32;
 tconv(T, f, c) ->
@@ -47,14 +45,20 @@ tconv(T, f, c) ->
 % This is the test program for newcol/4 and blendcol/2.
 % Note that C1 is 100% opaque here.
 %
-% 2> C1 = test1:newcol(0.3,0.4,0.5,1.0).
+% >>> C1 = test1:newcol(0.3,0.4,0.5,1.0).
 % #{red => 0.3,green => 0.4,blue => 0.5,alpha => 1.0}
-% 3> C2 = test1:newcol(1.0,0.8,0.1,0.3).
+% >>> C2 = test1:newcol(1.0,0.8,0.1,0.3).
 % #{red => 1.0,green => 0.8,blue => 0.1,alpha => 0.3}
-% 4> test1:blendcol(C1,C2).
+% >>> test1:blendcol(C1,C2).
 % #{red => 0.3,green => 0.4,blue => 0.5,alpha => 1.0}
-% 5> test1:blendcol(C2,C1).
+% >>> test1:blendcol(C2,C1).
 % #{red => 0.51,green => 0.52,blue => 0.38,alpha => 1.0}
+%
+% Summary of bracket styles.
+% {1, 2, 3}             Tuple.
+% [1, 2, 3]             List.
+% #{ 1 => 10, 2 => 11 } Map.
+% "123"                 List.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Define a macro.
@@ -128,7 +132,7 @@ blendcol(S, D) ->
 %==============================================================================
 % List maximum function.
 % Test:
-% 2> test1:listmax([7,6,5,1,4,54,64.2,3]).
+% >>> test1:listmax([7,6,5,1,4,54,64.2,3]).
 % 64.2
 % There is a lists library: http://erlang.org/doc/man/lists.html
 
@@ -147,10 +151,11 @@ listmax([X | L], Y) when X > Y ->
 % If the first element Y is _not_ less than the second element X,
 % remove X from the list, and keep Y in the first position.
 % NOTE: This gives a compilation warning because X is not used.
-%   test1.erl:138: Warning: variable 'X' is unused
-% It's very lucky that this is not a fatal error as it is in Golang.
+%   test1.erl:159: Warning: variable 'Xunused' is unused
+% It's very lucky that this is not a fatal error as it always is in Golang.
 % Erlang would be totally unusable if unused variables were forbidden.
-listmax([X | L], Y) ->
+% listmax([Xunused | L], Y) ->
+listmax([_ | L], Y) ->
     listmax(L, Y).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -163,7 +168,7 @@ listmax([X | L]) ->
 %==============================================================================
 % List reversal function.
 % Test:
-% 1> test1:listrev([-1, 7, 9.2, -3.3]).
+% >>> test1:listrev([-1, 7, 9.2, -3.3]).
 % [-3.3,9.2,7,-1]
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -183,7 +188,12 @@ listrev(L) ->
 
 %==============================================================================
 % Compute the number of days in a given year/month.
-% Use built-in function trunc/1.
+% Test:
+% >>> test1:monthdays(2018, 2).
+% 28
+% >>> test1:monthdays(2016, 2).
+% 29
+
 % In the if-clause for monthdays/2, the function is_div/2 can't be used.
 % test1.erl:201: call to local/imported function is_div/2 is illegal in guard
 % I don't know where this arbitrary-looking rule comes from.
@@ -195,19 +205,31 @@ is_div_unused(X, N) ->
         trunc(X/N) * N == X
     end.
 
+% An explanation is here:
+% http://erlang.org/doc/getting_started/seq_prog.html#id68896
+% Only a few BIFs can be used in guards, and you cannot use functions you have
+% defined yourself in guards. (see Guard Sequences)
+% (For advanced readers: This is to ensure that guards do not have side
+% effects.)
+%
+% That makes sense, I guess.
+
 % The following macro is also not accepted in the if-clause for Leapmonth.
 % test1.erl:206: illegal guard expression
 -define(is_div(X, N), (is_float(N) andalso N > 0 andalso trunc(X/N) * N == X)).
 % -define(is_div(X, N), (is_float(N) and N > 0 and trunc(X/N) * N == X)).
 
+% This function doesn't work before about October 1582 in Spain,
+% nor before 14 September 1752 in Britain.
+% See https://en.wikipedia.org/wiki/Gregorian_calendar#Adoption
 monthdays(Y, M) ->
     Leapmonth = if
-        trunc(Y/400) * 400 == Y ->
+        Y rem 400 == Y ->
             leapT;
-        trunc(Y/100) * 100 == Y ->
+        Y rem 100 == Y ->
             leapF;
 %        is_div(Y, 4) ->
-        trunc(Y/4) * 4 == Y ->
+        Y rem 4 == 0 ->
             leapT;
         true ->
             leapF
