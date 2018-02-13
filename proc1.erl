@@ -1,4 +1,4 @@
-% src/erlang/proc1.erl   2018-2-12   Alan U. Kennington.
+% src/erlang/proc1.erl   2018-2-13   Alan U. Kennington.
 % $Id$
 % Test run of erlang programming language "processes" (i.e. threads).
 % Based on: http://erlang.org/doc/getting_started/conc_prog.html
@@ -10,8 +10,14 @@
 -module(proc1).
 
 -export([procstartA/0, procstartAx/0, procA/2, procA/3]).
+-export([procstartB/0, procBserver/1, procBclient/3]).
 
 %==============================================================================
+% Example A. Two independent processes with no message passing.
+% Test:
+% >>> proc1:procstartA().
+% Test:
+% >>> proc1:procstartAx().
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % 2-parameter version.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -44,3 +50,46 @@ procstartA() ->
 procstartAx() ->
     spawn(proc1, procA, ["process 1000", 10, 1000]),
     spawn(proc1, procA, ["process 2500", 10, 2500]).
+
+%==============================================================================
+% Example B. Two processes with some basic message passing.
+% Test:
+% >>> proc1:procstartB().
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% The server.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+procBserver(Tsleep) ->
+    io:format("~p~n", ["procBserver waiting"]),
+    receive
+        fin ->
+            io:format("~p~n", ["procBserver received finish command"]);
+        { msg, PIDclient } ->
+            io:format("~p~n", ["procBserver received msg command"]),
+            timer:sleep(Tsleep),
+            PIDclient ! resp,
+            procBserver(Tsleep)
+    end.
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% The client.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+procBclient(Ntimes, PIDserver, Tsleep) when Ntimes > 0 ->
+    io:format("~p ~p~n", ["procBclient sending msg", Ntimes]),
+    PIDserver ! { msg, self() },
+    io:format("~p ~p~n", ["procBclient waiting", Ntimes]),
+    receive
+        resp ->
+            io:format("~p ~p~n", ["procBclient received response", Ntimes])
+    end,
+    timer:sleep(Tsleep),
+    procBclient(Ntimes - 1, PIDserver, Tsleep);
+procBclient(Ntimes, PIDserver, _) when Ntimes =< 0 ->
+    io:format("~p ~p~n", ["procBclient finishing", Ntimes]),
+    PIDserver ! fin.
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% The network creation.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+procstartB() ->
+    PIDserver = spawn(proc1, procBserver, [1000]),
+    spawn(proc1, procBclient, [5, PIDserver, 2500]).
