@@ -1,4 +1,4 @@
-% src/erlang/proc1.erl   2018-2-14   Alan U. Kennington.
+% src/erlang/proc1.erl   2018-2-15   Alan U. Kennington.
 % $Id$
 % Test run of erlang programming language "processes" (i.e. threads).
 % Based on: http://erlang.org/doc/getting_started/conc_prog.html
@@ -167,23 +167,41 @@ procstartC() ->
 % Test:
 % In window 1.
 % erl -sname serverD
-% (serverD@puma)1> c(proc1).
+% (serverD@hostA)1> c(proc1).
 % {ok,proc1}
-% (serverD@puma)2> proc1:startDserver().
+% (serverD@hostA)2> proc1:startDserver().
 % procDserver <0.79.0> waiting
 % true
 %
 % In window 2.
 % erl -sname clientD
-% (clientD@puma)1> c(proc1).
+% (clientD@hostA)1> c(proc1).
 % {ok,proc1}
-% (clientD@puma)2> proc1:startDclient(serverD@puma).
-% procDclient <0.115.0> sending msg 5 to serverD@puma
+% (clientD@hostA)2> proc1:startDclient(serverD@hostA).
+% procDclient <0.115.0> sending msg 5 to serverD@hostA
 % <0.115.0>
 % ....
 %
 % Note: If you modify the source, you must recompile in _both_ windows!!!
 % At least that's true if you don't restart the "erl" Unix-processes.
+%
+% In theory, you can run the server and client on two different hosts.
+% You must open TCP port 4369 so that epmd can signal port numbers.
+% However, the erl processes use dynamically allocated TCP port numbers.
+% So you have to effectively open all TCP ports in the firewall.
+% Then you can get communication going between erl processes on different hosts.
+% This seems extremely unwise to me, opening up all TCP ports for Erlang.
+% Then your entire systems will be open to every kind of hacking.
+%
+% To find out what ports are being used, run "epmd -names". Example:
+% user@hostA> epmd -names
+% epmd: up and running on port 4369 with data:
+% name clientD at port 55366
+% name serverD at port 37248
+%
+% If you create 2 client processes, and then call
+% proc1:startDclient(serverD@hostA) at about the same time,
+% they work as expected, because responses to to the correct senders.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % The server.
