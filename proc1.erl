@@ -1,4 +1,4 @@
-% src/erlang/proc1.erl   2018-2-13   Alan U. Kennington.
+% src/erlang/proc1.erl   2018-2-14   Alan U. Kennington.
 % $Id$
 % Test run of erlang programming language "processes" (i.e. threads).
 % Based on: http://erlang.org/doc/getting_started/conc_prog.html
@@ -11,6 +11,7 @@
 
 -export([procstartA/0, procstartAx/0, procA/2, procA/3]).
 -export([procstartB/0, procBserver/1, procBclient/3]).
+-export([procstartC/0, procCserver/1, procCclient/3]).
 
 %==============================================================================
 % Example A. Two independent processes with no message passing.
@@ -93,3 +94,63 @@ procBclient(Ntimes, PIDserver, _) when Ntimes =< 0 ->
 procstartB() ->
     PIDserver = spawn(proc1, procBserver, [1000]),
     spawn(proc1, procBclient, [5, PIDserver, 2500]).
+
+%==============================================================================
+% Example C. Two registered processes with some basic message passing.
+% Test:
+% >>> proc1:procstartC().
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% The server.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+procCserver(Tsleep) ->
+    io:format("procCserver ~p waiting~n", [self()]),
+    receive
+        { msg, PIDclient, NtimesRX } ->
+            io:format("procCserver ~p received msg ~p from ~p~n",
+                [self(), NtimesRX, PIDclient]),
+            timer:sleep(Tsleep),
+            io:format("procCserver ~p sending response to ~p [~p]~n",
+                [self(), PIDclient, NtimesRX]),
+            PIDclient ! { resp, self(), NtimesRX },
+            procCserver(Tsleep);
+        { fin, PIDclient, NtimesRX } ->
+            io:format("procCserver ~p received fin ~p from ~p~n",
+                [self(), NtimesRX, PIDclient]),
+            io:format("procCserver ~p END~n", [self()])
+    end.
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% The client.
+% In this case, the parameter "PIDserver" is the label "pidCserver",
+% not a raw process ID.
+% But the value of self() in procCserver/1 is the raw process ID.
+% This makes it difficult to identify labels with raw process IDs.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+procCclient(Ntimes, PIDserver, Tsleep) when Ntimes > 0 ->
+    io:format("procCclient ~p sending msg ~p to ~p~n",
+        [self(), Ntimes, PIDserver]),
+    PIDserver ! { msg, self(), Ntimes },
+    io:format("procCclient ~p waiting for response [~p]~n", [self(), Ntimes]),
+    receive
+        { resp, PIDserverRX, NtimesRX } ->
+            io:format("procCclient ~p received response ~p from ~p~n",
+                [self(), NtimesRX, PIDserverRX])
+    end,
+    timer:sleep(Tsleep),
+    procCclient(Ntimes - 1, PIDserver, Tsleep);
+procCclient(Ntimes, PIDserver, _) when Ntimes =< 0 ->
+    io:format("procCclient ~p sending fin to server ~p [~p]~n",
+        [self(), PIDserver, Ntimes]),
+    PIDserver ! { fin, self(), Ntimes },
+    io:format("procCclient ~p END~n", [self()]).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% The network creation.
+% When using "register/2", must use lower case because the name of the
+% process is now a label, not a variable.
+% If the process pidCserver has not died for some reason, the label cannot
+% be re-used.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+procstartC() ->
+    register(pidCserver, spawn(proc1, procCserver, [1000])),
+    spawn(proc1, procCclient, [5, pidCserver, 2500]).
