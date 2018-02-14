@@ -12,6 +12,7 @@
 -export([procstartA/0, procstartAx/0, procA/2, procA/3]).
 -export([procstartB/0, procBserver/1, procBclient/3]).
 -export([procstartC/0, procCserver/1, procCclient/3]).
+-export([startDserver/0, startDclient/1, procDserver/1, procDclient/3]).
 
 %==============================================================================
 % Example A. Two independent processes with no message passing.
@@ -19,6 +20,7 @@
 % >>> proc1:procstartA().
 % Test:
 % >>> proc1:procstartAx().
+
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % 2-parameter version.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -56,6 +58,7 @@ procstartAx() ->
 % Example B. Two processes with some basic message passing.
 % Test:
 % >>> proc1:procstartB().
+
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % The server.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -99,6 +102,7 @@ procstartB() ->
 % Example C. Two registered processes with some basic message passing.
 % Test:
 % >>> proc1:procstartC().
+
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % The server.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -108,10 +112,12 @@ procCserver(Tsleep) ->
         { msg, PIDclient, NtimesRX } ->
             io:format("procCserver ~p received msg ~p from ~p~n",
                 [self(), NtimesRX, PIDclient]),
+            io:format("procCserver ~p sleep ~p~n", [self(), Tsleep]),
             timer:sleep(Tsleep),
             io:format("procCserver ~p sending response to ~p [~p]~n",
                 [self(), PIDclient, NtimesRX]),
             PIDclient ! { resp, self(), NtimesRX },
+            io:format("procCserver ~p sleep ~p~n", [self(), Tsleep]),
             procCserver(Tsleep);
         { fin, PIDclient, NtimesRX } ->
             io:format("procCserver ~p received fin ~p from ~p~n",
@@ -136,6 +142,7 @@ procCclient(Ntimes, PIDserver, Tsleep) when Ntimes > 0 ->
             io:format("procCclient ~p received response ~p from ~p~n",
                 [self(), NtimesRX, PIDserverRX])
     end,
+    io:format("procCclient ~p sleep ~p~n", [self(), Tsleep]),
     timer:sleep(Tsleep),
     procCclient(Ntimes - 1, PIDserver, Tsleep);
 procCclient(Ntimes, PIDserver, _) when Ntimes =< 0 ->
@@ -154,3 +161,82 @@ procCclient(Ntimes, PIDserver, _) when Ntimes =< 0 ->
 procstartC() ->
     register(pidCserver, spawn(proc1, procCserver, [1000])),
     spawn(proc1, procCclient, [5, pidCserver, 2500]).
+
+%==============================================================================
+% Example D. Two registered processes with some basic message passing.
+% Test:
+% In window 1.
+% erl -sname serverD
+% (serverD@puma)1> c(proc1).
+% {ok,proc1}
+% (serverD@puma)2> proc1:startDserver().
+% procDserver <0.79.0> waiting
+% true
+%
+% In window 2.
+% erl -sname clientD
+% (clientD@puma)1> c(proc1).
+% {ok,proc1}
+% (clientD@puma)2> proc1:startDclient(serverD@puma).
+% procDclient <0.115.0> sending msg 5 to serverD@puma
+% <0.115.0>
+% ....
+%
+% Note: If you modify the source, you must recompile in _both_ windows!!!
+% At least that's true if you don't restart the "erl" Unix-processes.
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% The server.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+procDserver(Tsleep) ->
+    io:format("procDserver ~p waiting~n", [self()]),
+    receive
+        { msg, PIDclient, NtimesRX } ->
+            io:format("procDserver ~p received msg ~p from ~p~n",
+                [self(), NtimesRX, PIDclient]),
+            io:format("procDserver ~p sleep ~p~n", [self(), Tsleep]),
+            timer:sleep(Tsleep),
+            io:format("procDserver ~p sending response to ~p [~p]~n",
+                [self(), PIDclient, NtimesRX]),
+            PIDclient ! { resp, self(), NtimesRX },
+            io:format("procDserver ~p sleep ~p~n", [self(), Tsleep]),
+            procDserver(Tsleep);
+        { fin, PIDclient, NtimesRX } ->
+            io:format("procDserver ~p received fin ~p from ~p~n",
+                [self(), NtimesRX, PIDclient]),
+            io:format("procDserver ~p END~n", [self()])
+    end.
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% The client.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+procDclient(Ntimes, PIDserver, Tsleep) when Ntimes > 0 ->
+    io:format("procDclient ~p sending msg ~p to ~p~n",
+        [self(), Ntimes, PIDserver]),
+    { pidDserver, PIDserver } ! { msg, self(), Ntimes },
+    io:format("procDclient ~p waiting for response [~p]~n", [self(), Ntimes]),
+    receive
+        { resp, PIDserverRX, NtimesRX } ->
+            io:format("procDclient ~p received response ~p from ~p~n",
+                [self(), NtimesRX, PIDserverRX])
+    end,
+    io:format("procDclient ~p sleep ~p~n", [self(), Tsleep]),
+    timer:sleep(Tsleep),
+    procDclient(Ntimes - 1, PIDserver, Tsleep);
+procDclient(Ntimes, PIDserver, _) when Ntimes =< 0 ->
+    io:format("procDclient ~p sending fin to server ~p [~p]~n",
+        [self(), PIDserver, Ntimes]),
+    { pidDserver, PIDserver } ! { fin, self(), Ntimes },
+    io:format("procDclient ~p END~n", [self()]).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% The network creation.
+% When using "register/2", must use lower case because the name of the
+% process is now a label, not a variable.
+% If the process pidDserver has not died for some reason, the label cannot
+% be re-used.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+startDserver() ->
+    register(pidDserver, spawn(proc1, procDserver, [1000])).
+startDclient(PIDserver) ->
+    spawn(proc1, procDclient, [5, PIDserver, 2500]).
