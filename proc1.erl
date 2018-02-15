@@ -1,4 +1,4 @@
-% src/erlang/proc1.erl   2018-2-15   Alan U. Kennington.
+% src/erlang/proc1.erl   2018-2-16   Alan U. Kennington.
 % $Id$
 % Test run of erlang programming language "processes" (i.e. threads).
 % Based on: http://erlang.org/doc/getting_started/conc_prog.html
@@ -13,7 +13,7 @@
 -export([procstartB/0, procBserver/1, procBclient/3]).
 -export([procstartC/0, procCserver/1, procCclient/3]).
 -export([startDserver/0, startDclient/1, procDserver/1, procDclient/3]).
--export([poissonE/1, poissonE/2, procEpoisson/2]).
+-export([poissonE/1, poissonE/2, procEpoisson/2, startEpoisson/2]).
 
 %==============================================================================
 % Example A. Two independent processes with no message passing.
@@ -344,7 +344,7 @@ procEpoisson(Mu, Ntotal, N, Sum) when is_number(Mu) andalso Mu >= 0
         andalso is_integer(Ntotal) andalso Ntotal >= 1
         andalso is_integer(N) andalso N > 1 ->
     X = poissonE(Mu),
-    Tsleep = round(1000 * X),
+    Tsleep = floor(1000 * X + 0.5),
     NewSum = Sum + X,
     io:format("procEpoisson ~p:~n N = ~p, X = ~p, Tsleep = ~p, Sum = ~p~n",
         [self(), N, X, Tsleep, NewSum]),
@@ -353,7 +353,7 @@ procEpoisson(Mu, Ntotal, N, Sum) when is_number(Mu) andalso Mu >= 0
 procEpoisson(Mu, Ntotal, 1, Sum) when is_number(Mu) andalso Mu >= 0
         andalso is_integer(Ntotal) andalso Ntotal >= 1 ->
     X = poissonE(Mu),
-    Tsleep = round(1000 * X),
+    Tsleep = floor(1000 * X + 0.5),
     NewSum = Sum + X,
     io:format("procEpoisson ~p:~n N = ~p, X = ~p, Tsleep = ~p, Sum = ~p~n",
         [self(), 1, X, Tsleep, NewSum]),
@@ -366,3 +366,10 @@ procEpoisson(Mu, Ntotal, 1, Sum) when is_number(Mu) andalso Mu >= 0
 procEpoisson(Mu, Ntotal) when is_number(Mu) andalso Mu >= 0
         andalso is_integer(Ntotal) andalso Ntotal >= 1 ->
     procEpoisson(Mu, Ntotal, Ntotal, 0.0).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Spawn a procEpoisson/2 process.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+startEpoisson(Mu, Ntotal) when is_number(Mu) andalso Mu >= 0
+        andalso is_integer(Ntotal) andalso Ntotal >= 1 ->
+    spawn(proc1, procEpoisson, [Mu, Ntotal]).
