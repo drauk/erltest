@@ -13,7 +13,8 @@
 -export([procstartB/0, procBserver/1, procBclient/3]).
 -export([procstartC/0, procCserver/1, procCclient/3]).
 -export([startDserver/0, startDclient/1, procDserver/1, procDclient/3]).
--export([poissonE/1, poissonE/2, procEpoisson/2, startEpoisson/2]).
+-export([poissonE/1, poissonE/2, procEpoisson/2,
+    startEpoisson/2, startEpoisson/3]).
 
 %==============================================================================
 % Example A. Two independent processes with no message passing.
@@ -373,3 +374,20 @@ procEpoisson(Mu, Ntotal) when is_number(Mu) andalso Mu >= 0
 startEpoisson(Mu, Ntotal) when is_number(Mu) andalso Mu >= 0
         andalso is_integer(Ntotal) andalso Ntotal >= 1 ->
     spawn(proc1, procEpoisson, [Mu, Ntotal]).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Spawn many procEpoisson/2 processes.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+startEpoisson(Mu, Ntotal, Nproc) when is_number(Mu) andalso Mu >= 0
+        andalso is_integer(Ntotal) andalso Ntotal >= 1
+        andalso is_integer(Nproc) andalso Nproc >= 0 ->
+    if
+        Nproc =< 0 ->
+            io:format("startEpoisson ~p finished~n", [self()]),
+            exit(normal);
+        true ->
+            true
+    end,
+    io:format("startEpoisson ~p spawning process ~p~n", [self(), Nproc]),
+    spawn(proc1, procEpoisson, [Mu, Ntotal]),
+    startEpoisson(Mu, Ntotal, Nproc - 1).
