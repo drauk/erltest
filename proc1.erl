@@ -13,7 +13,7 @@
 -export([procstartB/0, procBserver/1, procBclient/3]).
 -export([procstartC/0, procCserver/1, procCclient/3]).
 -export([startDserver/0, startDclient/1, procDserver/1, procDclient/3]).
--export([procEpoisson/1, procEpoisson/2]).
+-export([poissonE/1, poissonE/2, procEpoisson/2]).
 
 %==============================================================================
 % Example A. Two independent processes with no message passing.
@@ -263,46 +263,105 @@ startDclient(PIDserver) ->
 %==============================================================================
 % Example E. Poisson process.
 % Test:
-% >>> proc1:procEpoisson(10).
+% >>> proc1:poissonE(10).
 % 16.87000453459495
-% >>> proc1:procEpoisson(10).
+% >>> proc1:poissonE(10).
 % 1.707294812752144
 %
-% >>> proc1:procEpoisson(10, 100).
+% >>> proc1:poissonE(10, 100).
 % 9.679999978534767
-% >>> proc1:procEpoisson(10, 100).
+% >>> proc1:poissonE(10, 100).
 % 10.291440498812618
 %
-% >>> proc1:procEpoisson(5, 100).
+% >>> proc1:poissonE(5, 100).
 % 5.557374407497482
-% >>> proc1:procEpoisson(5, 100).
+% >>> proc1:poissonE(5, 100).
 % 5.139241650823554
-% >>> proc1:procEpoisson(5, 100).
+% >>> proc1:poissonE(5, 100).
 % 4.925384013290105
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% procEpoisson/1. Poisson Distribution t -> exp(-Kt), K = 1/Mu. Mean Mu.
+% poissonE/1. Poisson distribution t -> exp(-Kt), K = 1/Mu. Mean Mu.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-procEpoisson(Mu) when is_number(Mu) andalso Mu >= 0 ->
+poissonE(Mu) when is_number(Mu) andalso Mu >= 0 ->
     X = rand:uniform(),
     -math:log(1.0 - X) * Mu.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% procEpoisson/4. Add up Ntotal values and average them.
+% poissonE/4. Add up Ntotal values and average them.
 % This is a really crazy way to average Ntotal numbers!
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+poissonE(Mu, Ntotal, N, Sum) when is_number(Mu) andalso Mu >= 0
+        andalso is_integer(Ntotal) andalso Ntotal >= 1
+        andalso is_integer(N) andalso N > 1 ->
+    X = poissonE(Mu),
+    poissonE(Mu, Ntotal, N - 1, Sum + X);
+poissonE(Mu, Ntotal, 1, Sum) when is_number(Mu) andalso Mu >= 0
+        andalso is_integer(Ntotal) andalso Ntotal >= 1 ->
+    X = poissonE(Mu),
+    (Sum + X) / Ntotal.
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% poissonE/2. Poisson distribution. Average of Ntotal values, mean Mu.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+poissonE(Mu, Ntotal) when is_number(Mu) andalso Mu >= 0
+        andalso is_integer(Ntotal) andalso Ntotal >= 1 ->
+    poissonE(Mu, Ntotal, Ntotal, 0.0).
+
+%------------------------------------------------------------------------------
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% procEpoisson/4. Add up Ntotal values and average them.
+% The math:floor/1, math:ceil/1, math:round/1 functions output float.
+% The erlang BIFs floor/1, ceil/1, round/1 output integer.
+% And timer:sleep/1 requires integer!
+%
+% Test:
+% >>> proc1:procEpoisson(5, 10).
+% procEpoisson <0.274.0>:
+%  N = 10, X = 7.163964130317594, Tsleep = 7164, Sum = 7.163964130317594
+% procEpoisson <0.274.0>:
+%  N = 9, X = 1.3160921312371316, Tsleep = 1316, Sum = 8.480056261554726
+% procEpoisson <0.274.0>:
+%  N = 8, X = 4.518958787613862, Tsleep = 4519, Sum = 12.999015049168587
+% procEpoisson <0.274.0>:
+%  N = 7, X = 4.873551884156486, Tsleep = 4874, Sum = 17.872566933325075
+% procEpoisson <0.274.0>:
+%  N = 6, X = 0.4557487720474376, Tsleep = 456, Sum = 18.328315705372514
+% procEpoisson <0.274.0>:
+%  N = 5, X = 4.9034309060690155, Tsleep = 4903, Sum = 23.23174661144153
+% procEpoisson <0.274.0>:
+%  N = 4, X = 0.17451090887489748, Tsleep = 175, Sum = 23.406257520316426
+% procEpoisson <0.274.0>:
+%  N = 3, X = 5.725110242929824, Tsleep = 5725, Sum = 29.13136776324625
+% procEpoisson <0.274.0>:
+%  N = 2, X = 21.57473359926596, Tsleep = 21575, Sum = 50.706101362512214
+% procEpoisson <0.274.0>:
+%  N = 1, X = 12.8591281344789, Tsleep = 12859, Sum = 63.565229496991115
+% procEpoisson <0.274.0>: avg=6.356522949699111 END
+% ok
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 procEpoisson(Mu, Ntotal, N, Sum) when is_number(Mu) andalso Mu >= 0
         andalso is_integer(Ntotal) andalso Ntotal >= 1
         andalso is_integer(N) andalso N > 1 ->
-    X = procEpoisson(Mu),
-    procEpoisson(Mu, Ntotal, N - 1, Sum + X);
+    X = poissonE(Mu),
+    Tsleep = round(1000 * X),
+    NewSum = Sum + X,
+    io:format("procEpoisson ~p:~n N = ~p, X = ~p, Tsleep = ~p, Sum = ~p~n",
+        [self(), N, X, Tsleep, NewSum]),
+    timer:sleep(Tsleep),
+    procEpoisson(Mu, Ntotal, N - 1, NewSum);
 procEpoisson(Mu, Ntotal, 1, Sum) when is_number(Mu) andalso Mu >= 0
         andalso is_integer(Ntotal) andalso Ntotal >= 1 ->
-    X = procEpoisson(Mu),
-    (Sum + X) / Ntotal.
+    X = poissonE(Mu),
+    Tsleep = round(1000 * X),
+    NewSum = Sum + X,
+    io:format("procEpoisson ~p:~n N = ~p, X = ~p, Tsleep = ~p, Sum = ~p~n",
+        [self(), 1, X, Tsleep, NewSum]),
+    timer:sleep(Tsleep),
+    io:format("procEpoisson ~p: avg=~p END~n", [self(), NewSum / Ntotal]).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% procEpoisson/2. Poisson Distribution. Average of Ntotal values, mean Mu.
+% procEpoisson/2. Poisson process. Average of Ntotal values, mean Mu.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 procEpoisson(Mu, Ntotal) when is_number(Mu) andalso Mu >= 0
         andalso is_integer(Ntotal) andalso Ntotal >= 1 ->
