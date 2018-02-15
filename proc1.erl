@@ -13,6 +13,7 @@
 -export([procstartB/0, procBserver/1, procBclient/3]).
 -export([procstartC/0, procCserver/1, procCclient/3]).
 -export([startDserver/0, startDclient/1, procDserver/1, procDclient/3]).
+-export([procEpoisson/1, procEpoisson/2]).
 
 %==============================================================================
 % Example A. Two independent processes with no message passing.
@@ -258,3 +259,51 @@ startDserver() ->
     register(pidDserver, spawn(proc1, procDserver, [1000])).
 startDclient(PIDserver) ->
     spawn(proc1, procDclient, [5, PIDserver, 2500]).
+
+%==============================================================================
+% Example E. Poisson process.
+% Test:
+% >>> proc1:procEpoisson(10).
+% 16.87000453459495
+% >>> proc1:procEpoisson(10).
+% 1.707294812752144
+%
+% >>> proc1:procEpoisson(10, 100).
+% 9.679999978534767
+% >>> proc1:procEpoisson(10, 100).
+% 10.291440498812618
+%
+% >>> proc1:procEpoisson(5, 100).
+% 5.557374407497482
+% >>> proc1:procEpoisson(5, 100).
+% 5.139241650823554
+% >>> proc1:procEpoisson(5, 100).
+% 4.925384013290105
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% procEpoisson/1. Poisson Distribution t -> exp(-Kt), K = 1/Mu. Mean Mu.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+procEpoisson(Mu) when is_number(Mu) andalso Mu >= 0 ->
+    X = rand:uniform(),
+    -math:log(1.0 - X) * Mu.
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% procEpoisson/4. Add up Ntotal values and average them.
+% This is a really crazy way to average Ntotal numbers!
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+procEpoisson(Mu, Ntotal, N, Sum) when is_number(Mu) andalso Mu >= 0
+        andalso is_integer(Ntotal) andalso Ntotal >= 1
+        andalso is_integer(N) andalso N > 1 ->
+    X = procEpoisson(Mu),
+    procEpoisson(Mu, Ntotal, N - 1, Sum + X);
+procEpoisson(Mu, Ntotal, 1, Sum) when is_number(Mu) andalso Mu >= 0
+        andalso is_integer(Ntotal) andalso Ntotal >= 1 ->
+    X = procEpoisson(Mu),
+    (Sum + X) / Ntotal.
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% procEpoisson/2. Poisson Distribution. Average of Ntotal values, mean Mu.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+procEpoisson(Mu, Ntotal) when is_number(Mu) andalso Mu >= 0
+        andalso is_integer(Ntotal) andalso Ntotal >= 1 ->
+    procEpoisson(Mu, Ntotal, Ntotal, 0.0).
