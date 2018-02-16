@@ -47,7 +47,21 @@ createWindowA(ServerA) ->
     % wxTopLevelWindow, wxWindow, wxEvtHandler
     % http://erlang.org/doc/man/wxEvtHandler.html#connect-2
     % wxCloseEventType() = close_window | end_session | query_end_session
+    % Events defined in file: /usr/local/lib/erlang/lib/wx-1.8.3/include/wx.hrl
     wxFrame:connect(FrameA, close_window),
+
+    % Receive key events.
+    wxFrame:connect(FrameA, 'char'),
+    wxFrame:connect(FrameA, key_down),
+    wxFrame:connect(FrameA, move),
+    wxFrame:connect(FrameA, set_focus),
+    wxFrame:connect(FrameA, iconize),
+    wxFrame:connect(FrameA, left_down),
+    wxFrame:connect(FrameA, motion),
+    wxFrame:connect(FrameA, show),
+    wxFrame:connect(FrameA, size),
+    wxFrame:connect(FrameA, create),
+    wxFrame:connect(FrameA, destroy),
 
     % The text for wxFrame:setStatusText/3 appears at the bottom of the window.
     % See http://erlang.org/doc/man/wxFrame.html#setStatusText-2
@@ -62,12 +76,73 @@ createWindowA(ServerA) ->
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 handleWindowA(FrameA) ->
     receive
-        #wx{event=#wxClose{}} ->
+        % This is the event which is called when the window is closed.
+        #wx{event=#wxClose{type=close_window}} ->
             io:format("Process ~p closing window~n",[self()]),
             ok = wxFrame:setStatusText(FrameA, "Closing soon...", []),
             timer:sleep(5000),
             wxWindow:destroy(FrameA),
             ok;
+
+        % This event is not received.
+        #wx{event=#wxClose{type=end_session}} ->
+            io:format("Process ~p ending session~n",[self()]),
+            ok = wxFrame:setStatusText(FrameA, "Closing soon...", []),
+            timer:sleep(5000),
+            wxWindow:destroy(FrameA),
+            ok;
+
+        % Try to receive a key char event.
+        #wx{event=#wxKey{type=char, keyCode=C}} ->
+            io:format("Process ~p received key char event ~p~n",
+                [self(), C]),
+            handleWindowA(FrameA);
+
+        % Mouse motion.
+        #wx{event=#wxMouse{type=motion, x=X, y=Y}} ->
+            io:format("Process ~p received mouse motion event (~p,~p)~n",
+                [self(), X, Y]),
+            handleWindowA(FrameA);
+
+        % Mouse left_down.
+        #wx{event=#wxMouse{type=left_down, x=X, y=Y}} ->
+            io:format("Process ~p received mouse left_down event (~p,~p)~n",
+                [self(), X, Y]),
+            handleWindowA(FrameA);
+
+        % Window create.
+        #wx{event=#wxWindowCreate{type=create}} ->
+            io:format("Process ~p received window create event~n", [self()]),
+            handleWindowA(FrameA);
+
+        % Window destroy.
+        #wx{event=#wxWindowDestroy{type=destroy}} ->
+            io:format("Process ~p received window destroy event~n", [self()]),
+            handleWindowA(FrameA);
+
+        % Window show.
+        #wx{event=#wxShow{type=show}} ->
+            io:format("Process ~p received window show event~n", [self()]),
+            handleWindowA(FrameA);
+
+        % Window size.
+        #wx{event=#wxSize{type=size}} ->
+            io:format("Process ~p received window size event~n", [self()]),
+            handleWindowA(FrameA);
+
+        % Window move.
+        #wx{event=#wxMove{type=move, pos={X, Y}}} ->
+            io:format("Process ~p received window move event (~p,~p)~n",
+                [self(), X, Y]),
+            handleWindowA(FrameA);
+
+        % Window iconize.
+        #wx{event=#wxIconize{type=iconize, iconized=I}} ->
+            io:format("Process ~p received window iconize event ~p~n",
+                [self(), I]),
+            handleWindowA(FrameA);
+
+        % This event is not received.
         Evt ->
             io:format("Process ~p received event ~p~n", [self(), Evt]),
             handleWindowA(FrameA)
