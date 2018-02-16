@@ -1,11 +1,12 @@
-% src/erlang/test1.erl   2018-2-12   Alan U. Kennington.
+% src/erlang/test1.erl   2018-2-16   Alan U. Kennington.
 % $Id$
 % Test run of erlang programming language to see what it can do.
 % Based on http://erlang.org/doc/getting_started/seq_prog.html
 
 -module(test1).
 
--export([double/1, f/1]).
+-export([double/1]).
+-export([f/1, facto/1, factoTR/1]).
 -export([tconv/3]).
 -export([newcol/4, blendcol/2]).
 -export([listmax/1]).
@@ -23,25 +24,77 @@
 double(Abc) ->
     2*Abc.
 
+%==============================================================================
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Factorial of a positive integer.
+% Naive version without an if-clause.
+% Test:
+% >>> test1:f(5).
+% 120
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % The function name "f1" is not permitted.
 % Error was:
 %   {error,non_existing}
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% This is not "tail recursive" because the last expression is not "f(N-1)".
+% The current context must therefore be maintained while evaluating the
+% expression "N * f(N-1)" by invoking a new context.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 f(1) ->
     1;
 f(N) ->
     N * f(N-1).
 
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Single-function factorial function for non-negative integer.
+% Test:
+% >>> test1:facto(5).
+% 120
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% This is not "tail recursive" because the last expression is not "facto(N-1)".
+% The current context must therefore be maintained while evaluating the
+% expression "N * facto(N-1)" by invoking a new context.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+facto(N) when is_integer(N) andalso N >= 0 ->
+    if
+        N == 0 ->
+            1;
+        true ->
+            N * facto(N-1)
+    end.
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Factorial functions which is (hopefully) tail-recursive.
+% Requires one trivial starter-function.
+% Test:
+% >>> test1:factoTR(5).
+% 120
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+factoTR(N, Prod) when is_integer(N) andalso N >= 0 andalso is_number(Prod) ->
+    if
+        N == 0 ->
+            Prod;
+        true ->
+            factoTR(N - 1, Prod * N)
+    end.
+factoTR(N) when is_integer(N) andalso N >= 0 ->
+    factoTR(N, 1).
+
 %==============================================================================
 % Convert temperature.
+% An exercise for labels, which are called "atoms".
+% See: http://erlang.org/doc/reference_manual/data_types.html#id66121
+%  "An atom is to be enclosed in single quotes (') if it does not begin with a
+%  lower-case letter or if it contains other characters than alphanumeric
+%  characters, underscore (_), or @."
 tconv(T, c, f) ->
     (T * 9) / 5 + 32;
 tconv(T, f, c) ->
     (T - 32) / 9 * 5.
 
 %==============================================================================
+% Colour-blending functions to demonstrate maps.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % This is the test program for newcol/4 and blendcol/2.
 % Note that C1 is 100% opaque here.
 %
@@ -131,10 +184,18 @@ blendcol(S, D) ->
 
 %==============================================================================
 % List maximum function.
+% Lists: http://erlang.org/doc/reference_manual/data_types.html#id77524
+% Lists library: http://erlang.org/doc/man/lists.html
+% The maximum of the empty list is undefined. (Not a bug!)
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Test:
-% >>> test1:listmax([7,6,5,1,4,54,64.2,3]).
+% (clientD@hostA)206> test1:listmax([7,6,5,1,4,54,64.2,3]).
 % 64.2
-% There is a lists library: http://erlang.org/doc/man/lists.html
+% (clientD@hostA)207> test1:listmax([3]).
+% 3
+% (clientD@hostA)208> test1:listmax([]).
+% ** exception error: no function clause matching test1:listmax([]) (test1.erl,
+% line 218)
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % The two-parameter version.
@@ -160,9 +221,8 @@ listmax([_ | L], Y) ->
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % The one-parameter export version.
-% The maximum of the empty list is undefined. (Not a bug!)
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-listmax([X | L]) ->
+listmax([X | L]) when is_list(L) ->
     listmax(L, X).
 
 %==============================================================================
