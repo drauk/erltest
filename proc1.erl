@@ -1,4 +1,4 @@
-% src/erlang/proc1.erl   2018-2-16   Alan U. Kennington.
+% src/erlang/proc1.erl   2018-2-17   Alan U. Kennington.
 % $Id$
 % Test run of erlang programming language "processes" (i.e. threads).
 % Based on: http://erlang.org/doc/getting_started/conc_prog.html
@@ -377,6 +377,8 @@ startEpoisson(Mu, Ntotal) when is_number(Mu) andalso Mu >= 0
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Spawn many procEpoisson/2 processes.
+% For exit: http://erlang.org/doc/reference_manual/errors.html#id87812
+% Exit handling: http://erlang.org/doc/reference_manual/processes.html#id88677
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startEpoisson(Mu, Ntotal, Nproc) when is_number(Mu) andalso Mu >= 0
         andalso is_integer(Ntotal) andalso Ntotal >= 1
