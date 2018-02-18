@@ -1,6 +1,7 @@
-% src/erlang/mobsim1.erl   2018-2-18   Alan U. Kennington.
+% src/erlang/mobsim1.erl   2018-2-19   Alan U. Kennington.
 % $Id$
-% Familiarization with wxErlang library.
+% This will be a module which simulates mobile entities using wxErlang.
+% Work In Progress!!! (I'm just getting started.)
 % For wx: http://erlang.org/doc/apps/wx/index.html
 % See also file: /usr/local/lib/erlang/lib/wx-1.8.3/examples/simple/hello.erl
 
@@ -11,6 +12,7 @@
 -include_lib("wx/include/wx.hrl").
 
 -export([startMobSimA/0, startWindowA/0]).
+-export([startMobileA/1, procMobSimA/3]).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % On my system, this function has problems with Glib invoking SCIM.
@@ -290,8 +292,6 @@ createWindowA(ServerA) ->
 % If exit(normal) is called in the inner loop, this function cannot return.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 handleWindowA(FrameA) ->
-    % Note: Should use "if" or "case" statements for the following,
-    % where all events has the same handling for "id" and "obj" etc.
     receive
         % Try to catch all events in a single case.
         #wx{id=Id, obj=Obj, event=EvtA} ->
@@ -464,8 +464,8 @@ handleWindowA(FrameA) ->
     end.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% Entry point for this module.
-% But this function is intended to be spawned from startMobSimA.
+% This function is intended to be spawned from startMobSimA.
+% It calls the event handler for the window process.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startWindowA() ->
     % Create a server object.
@@ -502,15 +502,78 @@ startWindowA() ->
     % Wait for a while.
 %    timer:sleep(5000),
 
-    % Destroy everything.
+    % Destroy the wx server.
+    % There can only be one, I think. So there's no need to specify which one.
     io:format("Destroy wx server~n", []),
     wx:destroy(),
     ok.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% A mobile device client process.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+procMobSimA(Ntimes, PIDserver, Tsleep) when Ntimes > 0 ->
+    io:format("procMobSimA ~p sending msg ~p to ~p~n",
+        [self(), Ntimes, PIDserver]),
+    { pidMobSimWindowA, PIDserver } ! { msg, self(), Ntimes },
+%    io:format("procMobSimA ~p waiting for response [~p]~n", [self(), Ntimes]),
+%    receive
+%        { resp, PIDserverRX, NtimesRX } ->
+%            io:format("procMobSimA ~p received response ~p from ~p~n",
+%                [self(), NtimesRX, PIDserverRX])
+%    end,
+    io:format("procMobSimA ~p sleep ~p~n", [self(), Tsleep]),
+    timer:sleep(Tsleep),
+    procMobSimA(Ntimes - 1, PIDserver, Tsleep);
+procMobSimA(Ntimes, PIDserver, _) when Ntimes =< 0 ->
+    io:format("procMobSimA ~p sending fin to server ~p [~p]~n",
+        [self(), PIDserver, Ntimes]),
+    { pidMobSimWindowA, PIDserver } ! { fin, self(), Ntimes },
+    io:format("procMobSimA ~p END~n", [self()]).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Entry point for this module.
+% This starts a window server for the mobile clients to send messages to.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Test on machine running "erl -sname serverD":
+%
+% (serverD@puma)38> mobsim1:startMobSimA().
+% >>> mobsim1:startMobSimA().
+% mobsim1 process <0.103.0> spawning wxWindow process
+% true
+% wx env = {wx_env,#Port<0.11>,<0.122.0>,0}
+% ....
+%
+% On second machine, running for example "erl -sname clientD":
+%
+% (clientD@puma)147> mobsim1:startMobileA(serverD@puma).
+% procMobSimA <0.1624.0> sending msg 5 to serverD@puma
+% <0.1624.0>
+% procMobSimA <0.1624.0> sleep 2500
+% procMobSimA <0.1624.0> sending msg 4 to serverD@puma
+% procMobSimA <0.1624.0> sleep 2500
+% procMobSimA <0.1624.0> sending msg 3 to serverD@puma
+% procMobSimA <0.1624.0> sleep 2500
+% procMobSimA <0.1624.0> sending msg 2 to serverD@puma
+% procMobSimA <0.1624.0> sleep 2500
+% procMobSimA <0.1624.0> sending msg 1 to serverD@puma
+% procMobSimA <0.1624.0> sleep 2500
+% procMobSimA <0.1624.0> sending fin to server serverD@puma [0]
+% procMobSimA <0.1624.0> END
+%
+% Then should see messages on the server side.
+% Process <0.120.0> received event {msg,<8292.1624.0>,5}
+% Process <0.120.0> received event {msg,<8292.1624.0>,4}
+% Process <0.120.0> received event {msg,<8292.1624.0>,3}
+% Process <0.120.0> received event {msg,<8292.1624.0>,2}
+% Process <0.120.0> received event {msg,<8292.1624.0>,1}
+% Process <0.120.0> received event {fin,<8292.1624.0>,0}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobSimA() ->
-    io:format("mobsim1 process ~p spawning wxWindow process~n",
-        [self()]),
+    io:format("mobsim1 process ~p spawning wxWindow process~n", [self()]),
     register(pidMobSimWindowA, spawn(mobsim1, startWindowA, [])).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Start a mobile devices, which is a client for the window process.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+startMobileA(PIDserver) ->
+    spawn(mobsim1, procMobSimA, [5, PIDserver, 2500]).
