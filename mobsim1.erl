@@ -19,7 +19,7 @@
 % The following garbage appears after calls to:
 % wxFrame:new/4. wxFrame:createStatusBar/2
 %
-% (clientD@puma)286> wx1:startWindowA().
+% (clientD@hostA)286> wx1:startWindowA().
 % (Erlang:8988): GLib-GObject-WARNING **: plugin
 %  '/usr/lib64/gtk-2.0/immodules/im-scim.so' failed to register type
 %  'GtkIMContextSCIM'
@@ -536,7 +536,7 @@ procMobSimA(Ntimes, PIDserver, _) when Ntimes =< 0 ->
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Test on machine running "erl -sname serverD":
 %
-% (serverD@puma)38> mobsim1:startMobSimA().
+% (serverD@hostA)38> mobsim1:startMobSimA().
 % >>> mobsim1:startMobSimA().
 % mobsim1 process <0.103.0> spawning wxWindow process
 % true
@@ -545,19 +545,19 @@ procMobSimA(Ntimes, PIDserver, _) when Ntimes =< 0 ->
 %
 % On second machine, running for example "erl -sname clientD":
 %
-% (clientD@puma)147> mobsim1:startMobileA(serverD@puma).
-% procMobSimA <0.1624.0> sending msg 5 to serverD@puma
+% (clientD@hostA)147> mobsim1:startMobileA(serverD@hostA).
+% procMobSimA <0.1624.0> sending msg 5 to serverD@hostA
 % <0.1624.0>
 % procMobSimA <0.1624.0> sleep 2500
-% procMobSimA <0.1624.0> sending msg 4 to serverD@puma
+% procMobSimA <0.1624.0> sending msg 4 to serverD@hostA
 % procMobSimA <0.1624.0> sleep 2500
-% procMobSimA <0.1624.0> sending msg 3 to serverD@puma
+% procMobSimA <0.1624.0> sending msg 3 to serverD@hostA
 % procMobSimA <0.1624.0> sleep 2500
-% procMobSimA <0.1624.0> sending msg 2 to serverD@puma
+% procMobSimA <0.1624.0> sending msg 2 to serverD@hostA
 % procMobSimA <0.1624.0> sleep 2500
-% procMobSimA <0.1624.0> sending msg 1 to serverD@puma
+% procMobSimA <0.1624.0> sending msg 1 to serverD@hostA
 % procMobSimA <0.1624.0> sleep 2500
-% procMobSimA <0.1624.0> sending fin to server serverD@puma [0]
+% procMobSimA <0.1624.0> sending fin to server serverD@hostA [0]
 % procMobSimA <0.1624.0> END
 %
 % Then should see messages on the server side.

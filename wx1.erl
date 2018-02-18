@@ -1,4 +1,4 @@
-% src/erlang/wx1.erl   2018-2-18   Alan U. Kennington.
+% src/erlang/wx1.erl   2018-2-19   Alan U. Kennington.
 % $Id$
 % Familiarization with wxErlang library.
 % Reference manual: http://erlang.org/doc/apps/wx/index.html
@@ -17,7 +17,7 @@
 % The following garbage appears after calls to:
 % wxFrame:new/4. wxFrame:createStatusBar/2
 %
-% (clientD@puma)286> wx1:startWindowA().
+% (clientD@hostA)286> wx1:startWindowA().
 % (Erlang:8988): GLib-GObject-WARNING **: plugin
 %  '/usr/lib64/gtk-2.0/immodules/im-scim.so' failed to register type
 %  'GtkIMContextSCIM'
