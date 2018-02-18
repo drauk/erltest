@@ -53,6 +53,7 @@ createWindowA(ServerA) ->
 %    wxFrame:setFocus(FrameA),
     wxWindow:setFocus(FrameA),
 
+    % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     % See http://erlang.org/doc/man/wxFrame.html
     % which says that wxFrame is derived from:
     % wxTopLevelWindow, wxWindow, wxEvtHandler
@@ -64,6 +65,7 @@ createWindowA(ServerA) ->
     wxFrame:connect(FrameA, end_session),
     wxFrame:connect(FrameA, query_end_session),
 
+    % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     % Other event classes and types.
     % wxActivate
     wxFrame:connect(FrameA, activate),
@@ -265,6 +267,7 @@ createWindowA(ServerA) ->
 
     % wxWindowDestroy
     wxFrame:connect(FrameA, destroy),
+    % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     % The text for wxFrame:setStatusText/3 appears at the bottom of the window.
     % See http://erlang.org/doc/man/wxFrame.html#setStatusText-2
@@ -487,17 +490,17 @@ startWindowA() ->
     FrameA = wx:batch(fun() -> createWindowA(ServerA) end),
 
     % Show the frame.
-    io:format("Show frame~n", []),
+    io:format("Show wx frame~n", []),
     wxWindow:show(FrameA),
 
     % Go into a loop.
-    io:format("Start event handler~n", []),
+    io:format("Start wx event handler~n", []),
     handleWindowA(FrameA),
 
     % Wait for a while.
 %    timer:sleep(5000),
 
     % Destroy everything.
-    io:format("Destroy server~n", []),
+    io:format("Destroy wx server~n", []),
     wx:destroy(),
     ok.
