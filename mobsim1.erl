@@ -465,6 +465,7 @@ handleWindowA(FrameA) ->
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Entry point for this module.
+% But this function is intended to be spawned from startMobSimA.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startWindowA() ->
     % Create a server object.
@@ -506,6 +507,9 @@ startWindowA() ->
     wx:destroy(),
     ok.
 
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Entry point for this module.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobSimA() ->
     io:format("mobsim1 process ~p spawning wxWindow process~n",
         [self()]),

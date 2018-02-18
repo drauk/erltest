@@ -1,4 +1,4 @@
-% src/erlang/proc1.erl   2018-2-17   Alan U. Kennington.
+% src/erlang/proc1.erl   2018-2-18   Alan U. Kennington.
 % $Id$
 % Test run of erlang programming language "processes" (i.e. threads).
 % Based on: http://erlang.org/doc/getting_started/conc_prog.html
@@ -26,25 +26,32 @@
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % 2-parameter version.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-procA(S, 0) ->
-    io:format("~p~n", [S]),
-    done;
-procA(S, Ntimes) when is_integer(Ntimes) andalso Ntimes >= 1 ->
+procA(S, Ntimes) when is_integer(Ntimes) andalso Ntimes >= 0 ->
     io:format("~p~n", [S]),
     timer:sleep(1000),
-    procA(S, Ntimes - 1).
+    if
+        Ntimes =< 0 ->
+            ok;
+        true ->
+            procA(S, Ntimes - 1)
+    end.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % 3-parameter version.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-procA(S, 0, _) ->
-    io:format("~p ~p~n", [S, 0]),
-    done;
-procA(S, Ntimes, Tsleep) when is_integer(Ntimes) andalso Ntimes >= 1
+% procA(S, 0, _) ->
+%     io:format("~p ~p~n", [S, 0]),
+%     done;
+procA(S, Ntimes, Tsleep) when is_integer(Ntimes) andalso Ntimes >= 0
         andalso is_number(Tsleep) andalso Tsleep >= 0 ->
     io:format("~p ~p~n", [S, Ntimes]),
     timer:sleep(Tsleep),
-    procA(S, Ntimes - 1, Tsleep).
+    if
+        Ntimes =< 0 ->
+            ok;
+        true ->
+            procA(S, Ntimes - 1, Tsleep)
+    end.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Erlang automatically works out the arity of procA !!
@@ -294,13 +301,16 @@ poissonE(Mu) when is_number(Mu) andalso Mu >= 0 ->
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 poissonE(Mu, Ntotal, N, Sum) when is_number(Mu) andalso Mu >= 0
         andalso is_integer(Ntotal) andalso Ntotal >= 1
-        andalso is_integer(N) andalso N > 1 ->
+        andalso is_integer(N) andalso N >= 1 ->
     X = poissonE(Mu),
-    poissonE(Mu, Ntotal, N - 1, Sum + X);
-poissonE(Mu, Ntotal, 1, Sum) when is_number(Mu) andalso Mu >= 0
-        andalso is_integer(Ntotal) andalso Ntotal >= 1 ->
-    X = poissonE(Mu),
-    (Sum + X) / Ntotal.
+    if
+        N =< 1 ->
+            % The "return value".
+            (Sum + X) / Ntotal;
+        true ->
+            % Tail recursion.
+            poissonE(Mu, Ntotal, N - 1, Sum + X)
+    end.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % poissonE/2. Poisson distribution. Average of Ntotal values, mean Mu.
@@ -343,23 +353,20 @@ poissonE(Mu, Ntotal) when is_number(Mu) andalso Mu >= 0
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 procEpoisson(Mu, Ntotal, N, Sum) when is_number(Mu) andalso Mu >= 0
         andalso is_integer(Ntotal) andalso Ntotal >= 1
-        andalso is_integer(N) andalso N > 1 ->
+        andalso is_integer(N) andalso N >= 1 ->
     X = poissonE(Mu),
     Tsleep = floor(1000 * X + 0.5),
     NewSum = Sum + X,
     io:format("procEpoisson ~p:~n N = ~p, X = ~p, Tsleep = ~p, Sum = ~p~n",
         [self(), N, X, Tsleep, NewSum]),
     timer:sleep(Tsleep),
-    procEpoisson(Mu, Ntotal, N - 1, NewSum);
-procEpoisson(Mu, Ntotal, 1, Sum) when is_number(Mu) andalso Mu >= 0
-        andalso is_integer(Ntotal) andalso Ntotal >= 1 ->
-    X = poissonE(Mu),
-    Tsleep = floor(1000 * X + 0.5),
-    NewSum = Sum + X,
-    io:format("procEpoisson ~p:~n N = ~p, X = ~p, Tsleep = ~p, Sum = ~p~n",
-        [self(), 1, X, Tsleep, NewSum]),
-    timer:sleep(Tsleep),
-    io:format("procEpoisson ~p: avg=~p END~n", [self(), NewSum / Ntotal]).
+    if
+        N =< 1 ->
+            io:format("procEpoisson ~p: avg=~p END~n",
+                [self(), NewSum / Ntotal]);
+        true ->
+            procEpoisson(Mu, Ntotal, N - 1, NewSum)
+    end.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % procEpoisson/2. Poisson process. Average of Ntotal values, mean Mu.
@@ -368,6 +375,7 @@ procEpoisson(Mu, Ntotal) when is_number(Mu) andalso Mu >= 0
         andalso is_integer(Ntotal) andalso Ntotal >= 1 ->
     procEpoisson(Mu, Ntotal, Ntotal, 0.0).
 
+%------------------------------------------------------------------------------
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Spawn a procEpoisson/2 process.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -385,11 +393,12 @@ startEpoisson(Mu, Ntotal, Nproc) when is_number(Mu) andalso Mu >= 0
         andalso is_integer(Nproc) andalso Nproc >= 0 ->
     if
         Nproc =< 0 ->
-            io:format("startEpoisson ~p finished~n", [self()]),
-            exit(normal);
+            io:format("startEpoisson ~p finished~n", [self()]);
+            % Don't use exit/1. It is less tidy than "falling off the end".
+%            exit(normal);
         true ->
-            true
-    end,
-    io:format("startEpoisson ~p spawning process ~p~n", [self(), Nproc]),
-    spawn(proc1, procEpoisson, [Mu, Ntotal]),
-    startEpoisson(Mu, Ntotal, Nproc - 1).
+            io:format("startEpoisson ~p spawning process ~p~n",
+                [self(), Nproc]),
+            spawn(proc1, procEpoisson, [Mu, Ntotal]),
+            startEpoisson(Mu, Ntotal, Nproc - 1)
+    end.
