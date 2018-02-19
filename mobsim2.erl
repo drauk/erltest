@@ -1,17 +1,17 @@
-% src/erlang/mobsim1.erl   2018-2-19   Alan U. Kennington.
-% This module tests feasibility of simulating a mobile network using wxErlang.
-% Please see mobsim2.erl for further development.
+% src/erlang/mobsim2.erl   2018-2-19   Alan U. Kennington.
+% This module will simulate a mobile network using wxErlang.
+% Work In Progress!!! (I'm just getting started.)
 % For wx: http://erlang.org/doc/apps/wx/index.html
 % See also file: /usr/local/lib/erlang/lib/wx-1.8.3/examples/simple/hello.erl
 
--module(mobsim1).
+-module(mobsim2).
 
 % This includes a large amount of code.
 % File: /usr/local/lib/erlang/lib/wx-1.8.3/src/wx.erl
 -include_lib("wx/include/wx.hrl").
 
 -export([startMobSimA/0, startWindowA/0]).
--export([startMobileA/1, procMobSimA/3]).
+-export([startMobileA/1, procMobSimA/4]).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % On my system, this function has problems with Glib invoking SCIM.
@@ -48,7 +48,6 @@ createWindowA(ServerA) ->
     io:format("Calling wxFrame:createToolBar/2.~n", []),
     wxFrame:createToolBar(FrameA, []),
     % Carriage return. Get the shell text cursor back to the left of the line.
-%    io:format("~n", []),
 
     % Set keyboard focus.
     % This seems to have no effect.
@@ -510,10 +509,10 @@ startWindowA() ->
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % A mobile device client process.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-procMobSimA(Ntimes, PIDserver, Tsleep) when Ntimes > 0 ->
+procMobSimA(Ntimes, PIDserver, Tsleep, {X, Y}) when Ntimes > 0 ->
     io:format("procMobSimA ~p sending msg ~p to ~p~n",
         [self(), Ntimes, PIDserver]),
-    { pidMobSimWindowA, PIDserver } ! { msg, self(), Ntimes },
+    { pidMobSimWindowA, PIDserver } ! { msg, self(), Ntimes, {X, Y} },
 %    io:format("procMobSimA ~p waiting for response [~p]~n", [self(), Ntimes]),
 %    receive
 %        { resp, PIDserverRX, NtimesRX } ->
@@ -522,11 +521,11 @@ procMobSimA(Ntimes, PIDserver, Tsleep) when Ntimes > 0 ->
 %    end,
     io:format("procMobSimA ~p sleep ~p~n", [self(), Tsleep]),
     timer:sleep(Tsleep),
-    procMobSimA(Ntimes - 1, PIDserver, Tsleep);
-procMobSimA(Ntimes, PIDserver, _) when Ntimes =< 0 ->
+    procMobSimA(Ntimes - 1, PIDserver, Tsleep, {X, Y});
+procMobSimA(Ntimes, PIDserver, _, {X, Y}) when Ntimes =< 0 ->
     io:format("procMobSimA ~p sending fin to server ~p [~p]~n",
         [self(), PIDserver, Ntimes]),
-    { pidMobSimWindowA, PIDserver } ! { fin, self(), Ntimes },
+    { pidMobSimWindowA, PIDserver } ! { fin, self(), Ntimes, {X, Y} },
     io:format("procMobSimA ~p END~n", [self()]).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -535,43 +534,18 @@ procMobSimA(Ntimes, PIDserver, _) when Ntimes =< 0 ->
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Test on machine running "erl -sname serverD":
 %
-% (serverD@hostA)38> mobsim1:startMobSimA().
-% mobsim1 process <0.103.0> spawning wxWindow process
-% true
-% wx env = {wx_env,#Port<0.11>,<0.122.0>,0}
-% ....
+% (serverD@hostA)38> mobsim2:startMobSimA().
 %
 % On second machine, running for example "erl -sname clientD":
 %
-% (clientD@hostA)147> mobsim1:startMobileA(serverD@hostA).
-% procMobSimA <0.1624.0> sending msg 5 to serverD@hostA
-% <0.1624.0>
-% procMobSimA <0.1624.0> sleep 2500
-% procMobSimA <0.1624.0> sending msg 4 to serverD@hostA
-% procMobSimA <0.1624.0> sleep 2500
-% procMobSimA <0.1624.0> sending msg 3 to serverD@hostA
-% procMobSimA <0.1624.0> sleep 2500
-% procMobSimA <0.1624.0> sending msg 2 to serverD@hostA
-% procMobSimA <0.1624.0> sleep 2500
-% procMobSimA <0.1624.0> sending msg 1 to serverD@hostA
-% procMobSimA <0.1624.0> sleep 2500
-% procMobSimA <0.1624.0> sending fin to server serverD@hostA [0]
-% procMobSimA <0.1624.0> END
-%
-% Then should see messages on the server side.
-% Process <0.120.0> received event {msg,<8292.1624.0>,5}
-% Process <0.120.0> received event {msg,<8292.1624.0>,4}
-% Process <0.120.0> received event {msg,<8292.1624.0>,3}
-% Process <0.120.0> received event {msg,<8292.1624.0>,2}
-% Process <0.120.0> received event {msg,<8292.1624.0>,1}
-% Process <0.120.0> received event {fin,<8292.1624.0>,0}
+% (clientD@hostA)147> mobsim2:startMobileA(serverD@hostA).
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobSimA() ->
-    io:format("mobsim1 process ~p spawning wxWindow process~n", [self()]),
-    register(pidMobSimWindowA, spawn(mobsim1, startWindowA, [])).
+    io:format("mobsim2 process ~p spawning wxWindow process~n", [self()]),
+    register(pidMobSimWindowA, spawn(mobsim2, startWindowA, [])).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Start a mobile devices, which is a client for the window process.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobileA(PIDserver) ->
-    spawn(mobsim1, procMobSimA, [5, PIDserver, 2500]).
+    spawn(mobsim2, procMobSimA, [5, PIDserver, 2500, {0, 0}]).
