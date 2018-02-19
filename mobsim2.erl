@@ -292,7 +292,7 @@ createWindowB(ServerB) ->
 % the caller, which is startWindowB/0, which can then call wx:destroy/0.
 % If exit(normal) is called in the inner loop, this function cannot return.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-handleWindowB(FrameB) ->
+handleWindowB(FrameB, DC) ->
     receive
         % Try to catch all events in a single case.
         #wx{id=Id, obj=Obj, event=EvtB} ->
@@ -451,17 +451,33 @@ handleWindowB(FrameB) ->
             % returning to the caller is the inner "case" terminates.
             if
                 CarryOn == carry_on ->
-                    handleWindowB(FrameB);
+                    handleWindowB(FrameB, DC);
                 CarryOn == exit_normal ->
                     ok;
                 true ->
                     ok
             end;
 
+        % Handle position message from a mobile client.
+        { PIDclient, pos, Ntimes, { Xold, Yold, Xnew, Ynew }} ->
+            io:format("~p received position event ~p from ~p: "
+                "(~p,~p,~p,~p)~n",
+                [self(), Ntimes, PIDclient, Xold, Yold, Xnew, Ynew]),
+            wxDC:drawCircle(DC, {Xnew, Ynew}, 8),
+            wxDC:drawPoint(DC, {Xnew, Ynew}),
+            handleWindowB(FrameB, DC);
+
+        % Handle finish message from a mobile client.
+        { PIDclient, fin, Ntimes, { Xold, Yold, Xnew, Ynew }} ->
+            io:format("~p received finish event ~p from ~p: "
+                "(~p,~p,~p,~p)~n",
+                [self(), Ntimes, PIDclient, Xold, Yold, Xnew, Ynew]),
+            handleWindowB(FrameB, DC);
+
         % All other event classes which are "connected".
         Evt ->
             io:format("Process ~p received event ~p~n", [self(), Evt]),
-            handleWindowB(FrameB)
+            handleWindowB(FrameB, DC)
     end.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -496,12 +512,17 @@ startWindowB() ->
     io:format("Show wx frame~n", []),
     wxWindow:show(FrameB),
 
+    % Create a DC (Device Context).
+    DC = wxClientDC:new(FrameB),
+%    DC = wxBufferedDC:new(DCclient, {640, 400}),
+
     % Go into a loop.
     io:format("Start wx event handler~n", []),
-    handleWindowB(FrameB),
+    handleWindowB(FrameB, DC),
 
-    % Wait for a while.
-%    timer:sleep(5000),
+    % Destroy the Device Context.
+    io:format("Destroy DC (Device Context)~n", []),
+    wxClientDC:destroy(DC),
 
     % Destroy the wx server.
     % There can only be one, I think. So there's no need to specify which one.
@@ -509,36 +530,42 @@ startWindowB() ->
     wx:destroy(),
     ok.
 
+%==============================================================================
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % A mobile device client process.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y})
+procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y, U, V})
         when is_integer(Ntimes) andalso Ntimes > 0
         andalso is_number(Tsleep) andalso Tsleep >= 0 ->
-    io:format("procMobSimB ~p sending msg ~p to ~p~n",
-        [self(), Ntimes, PIDserver]),
-    { pidMobSimWindowB, PIDserver } ! { self(), msg, Ntimes, {X, Y} },
+    Xnew = X + U, Ynew = Y + V,
+    io:format("procMobSimB ~p sending pos ~p to ~p: ~p~n",
+        [self(), Ntimes, PIDserver, {X, Y, Xnew, Ynew}]),
+    { pidMobSimWindowB, PIDserver } !
+        { self(), pos, Ntimes, {X, Y, Xnew, Ynew} },
     io:format("procMobSimB ~p waiting for response [~p]~n", [self(), Ntimes]),
-    Tout = 5000,
+    % Wait for something which probably won't arrive.
+    Tout = 3000,
     receive
         { PIDserverRX, resp, NtimesRX } ->
             io:format("procMobSimB ~p received response ~p from ~p~n",
                 [self(), NtimesRX, PIDserverRX])
     after
-        % Time-out after 5 seconds.
+        % Time-out handler.
         Tout ->
             io:format("procMobSimB ~p time-out after ~p mS~n",
                 [self(), Tout])
     end,
     io:format("procMobSimB ~p sleep ~p~n", [self(), Tsleep]),
     timer:sleep(Tsleep),
-    procMobSimB(PIDserver, Ntimes - 1, Tsleep, {X, Y});
-procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y})
+    procMobSimB(PIDserver, Ntimes - 1, Tsleep, {Xnew, Ynew, U, V});
+procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y, U, V})
         when is_integer(Ntimes) andalso Ntimes =< 0
         andalso is_number(Tsleep) andalso Tsleep >= 0 ->
+    Xnew = X + U, Ynew = Y + V,
     io:format("procMobSimB ~p sending fin to server ~p [~p]~n",
         [self(), PIDserver, Ntimes]),
-    { pidMobSimWindowB, PIDserver } ! { self(), fin, Ntimes, {X, Y} },
+    { pidMobSimWindowB, PIDserver } !
+        { self(), fin, Ntimes, {X, Y, Xnew, Ynew}},
     timer:sleep(Tsleep),
     io:format("procMobSimB ~p END~n", [self()]).
 
@@ -548,11 +575,13 @@ procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y})
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Test on machine running "erl -sname serverD":
 %
-% (serverD@hostA)38> mobsim2:startMobSimB().
+% >>> mobsim2:startMobSimB().
 %
 % On second machine, running for example "erl -sname clientD":
 %
-% (clientD@hostA)147> mobsim2:startMobileB(serverD@hostA).
+% >>> mobsim2:startMobileB(serverD@puma, 4, 2000, {100, 350, 30, -40}).
+% mobsim2:startMobileB(serverD@puma, 5, 2000, {150, 50, 40, 30}).
+%
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobSimB() ->
     io:format("mobsim2 process ~p spawning wxWindow process~n", [self()]),
@@ -566,23 +595,15 @@ startMobSimB() ->
 % (serverD@puma)42> mobsim2:startMobSimB().
 % mobsim2 process <0.103.0> spawning wxWindow process
 % ....
-% Process <0.148.0> received event {<8292.1727.0>,msg,7,{100,200}}
-% Process <0.148.0> received event {<8292.1727.0>,msg,6,{100,200}}
-% Process <0.148.0> received event {<8292.1727.0>,msg,5,{100,200}}
-% Process <0.148.0> received event {<8292.1727.0>,msg,4,{100,200}}
-% Process <0.148.0> received event {<8292.1727.0>,msg,3,{100,200}}
-% Process <0.148.0> received event {<8292.1727.0>,msg,2,{100,200}}
-% Process <0.148.0> received event {<8292.1727.0>,msg,1,{100,200}}
-% Process <0.148.0> received event {<8292.1727.0>,fin,0,{100,200}}
 %
 % On second machine, running for example "erl -sname clientD":
 %
 % mobsim2:startMobileB(serverD@puma, 7, 2500, {100, 200}).
-% procMobSimB <0.1727.0> sending msg 7 to serverD@puma
+% procMobSimB <0.1727.0> sending pos 7 to serverD@puma
 % ....
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobileB(PIDserver) ->
-    spawn(mobsim2, procMobSimB, [PIDserver, 5, 2500, {0, 0}]).
+    spawn(mobsim2, procMobSimB, [PIDserver, 5, 2500, {10, 20, 30, 40}]).
 
-startMobileB(PIDserver, Ntimes, Tsleep, {X, Y}) ->
-    spawn(mobsim2, procMobSimB, [PIDserver, Ntimes, Tsleep, {X, Y}]).
+startMobileB(PIDserver, Ntimes, Tsleep, {X, Y, U, V}) ->
+    spawn(mobsim2, procMobSimB, [PIDserver, Ntimes, Tsleep, {X, Y, U, V}]).
