@@ -10,8 +10,11 @@
 % File: /usr/local/lib/erlang/lib/wx-1.8.3/src/wx.erl
 -include_lib("wx/include/wx.hrl").
 
+% Server process.
 -export([startMobSimA/0, startWindowA/0]).
--export([startMobileA/1, procMobSimA/4]).
+
+% Client process.
+-export([startMobileA/1, startMobileA/4, procMobSimA/4]).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % On my system, this function has problems with Glib invoking SCIM.
@@ -509,23 +512,28 @@ startWindowA() ->
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % A mobile device client process.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-procMobSimA(Ntimes, PIDserver, Tsleep, {X, Y}) when Ntimes > 0 ->
+procMobSimA(PIDserver, Ntimes, Tsleep, {X, Y})
+        when is_integer(Ntimes) andalso Ntimes > 0
+        andalso is_number(Tsleep) andalso Tsleep >= 0 ->
     io:format("procMobSimA ~p sending msg ~p to ~p~n",
         [self(), Ntimes, PIDserver]),
-    { pidMobSimWindowA, PIDserver } ! { msg, self(), Ntimes, {X, Y} },
+    { pidMobSimWindowA, PIDserver } ! { self(), msg, Ntimes, {X, Y} },
 %    io:format("procMobSimA ~p waiting for response [~p]~n", [self(), Ntimes]),
 %    receive
-%        { resp, PIDserverRX, NtimesRX } ->
+%        { PIDserverRX, resp, NtimesRX } ->
 %            io:format("procMobSimA ~p received response ~p from ~p~n",
 %                [self(), NtimesRX, PIDserverRX])
 %    end,
     io:format("procMobSimA ~p sleep ~p~n", [self(), Tsleep]),
     timer:sleep(Tsleep),
-    procMobSimA(Ntimes - 1, PIDserver, Tsleep, {X, Y});
-procMobSimA(Ntimes, PIDserver, _, {X, Y}) when Ntimes =< 0 ->
+    procMobSimA(PIDserver, Ntimes - 1, Tsleep, {X, Y});
+procMobSimA(PIDserver, Ntimes, Tsleep, {X, Y})
+        when is_integer(Ntimes) andalso Ntimes =< 0
+        andalso is_number(Tsleep) andalso Tsleep >= 0 ->
     io:format("procMobSimA ~p sending fin to server ~p [~p]~n",
         [self(), PIDserver, Ntimes]),
-    { pidMobSimWindowA, PIDserver } ! { fin, self(), Ntimes, {X, Y} },
+    { pidMobSimWindowA, PIDserver } ! { self(), fin, Ntimes, {X, Y} },
+    timer:sleep(Tsleep),
     io:format("procMobSimA ~p END~n", [self()]).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -547,5 +555,28 @@ startMobSimA() ->
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Start a mobile devices, which is a client for the window process.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Test on machine running "erl -sname serverD":
+%
+% (serverD@puma)42> mobsim2:startMobSimA().
+% mobsim2 process <0.103.0> spawning wxWindow process
+% ....
+% Process <0.148.0> received event {<8292.1727.0>,msg,7,{100,200}}
+% Process <0.148.0> received event {<8292.1727.0>,msg,6,{100,200}}
+% Process <0.148.0> received event {<8292.1727.0>,msg,5,{100,200}}
+% Process <0.148.0> received event {<8292.1727.0>,msg,4,{100,200}}
+% Process <0.148.0> received event {<8292.1727.0>,msg,3,{100,200}}
+% Process <0.148.0> received event {<8292.1727.0>,msg,2,{100,200}}
+% Process <0.148.0> received event {<8292.1727.0>,msg,1,{100,200}}
+% Process <0.148.0> received event {<8292.1727.0>,fin,0,{100,200}}
+%
+% On second machine, running for example "erl -sname clientD":
+%
+% mobsim2:startMobileA(serverD@puma, 7, 2500, {100, 200}).
+% procMobSimA <0.1727.0> sending msg 7 to serverD@puma
+% ....
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobileA(PIDserver) ->
-    spawn(mobsim2, procMobSimA, [5, PIDserver, 2500, {0, 0}]).
+    spawn(mobsim2, procMobSimA, [PIDserver, 5, 2500, {0, 0}]).
+
+startMobileA(PIDserver, Ntimes, Tsleep, {X, Y}) ->
+    spawn(mobsim2, procMobSimA, [PIDserver, Ntimes, Tsleep, {X, Y}]).
