@@ -579,8 +579,8 @@ procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y, U, V})
 %
 % On second machine, running for example "erl -sname clientD":
 %
-% >>> mobsim2:startMobileB(serverD@puma, 4, 2000, {100, 350, 30, -40}).
-% mobsim2:startMobileB(serverD@puma, 5, 2000, {150, 50, 40, 30}).
+% >>> mobsim2:startMobileB(serverD@hostA, 4, 2000, {100, 350, 30, -40}).
+% mobsim2:startMobileB(serverD@hostA, 5, 2000, {150, 50, 40, 30}).
 %
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobSimB() ->
@@ -592,14 +592,14 @@ startMobSimB() ->
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Test on machine running "erl -sname serverD":
 %
-% (serverD@puma)42> mobsim2:startMobSimB().
+% (serverD@hostA)42> mobsim2:startMobSimB().
 % mobsim2 process <0.103.0> spawning wxWindow process
 % ....
 %
 % On second machine, running for example "erl -sname clientD":
 %
-% mobsim2:startMobileB(serverD@puma, 7, 2500, {100, 200}).
-% procMobSimB <0.1727.0> sending pos 7 to serverD@puma
+% mobsim2:startMobileB(serverD@hostA, 7, 2500, {100, 200}).
+% procMobSimB <0.1727.0> sending pos 7 to serverD@hostA
 % ....
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobileB(PIDserver) ->
