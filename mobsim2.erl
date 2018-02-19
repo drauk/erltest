@@ -1,4 +1,4 @@
-% src/erlang/mobsim2.erl   2018-2-19   Alan U. Kennington.
+% src/erlang/mobsim2.erl   2018-2-20   Alan U. Kennington.
 % This module will simulate a mobile network using wxErlang.
 % Work In Progress!!! (I'm just getting started.)
 % For wx: http://erlang.org/doc/apps/wx/index.html
@@ -14,7 +14,7 @@
 -export([startMobSimB/0, startWindowB/0]).
 
 % Client process.
--export([startMobileB/1, startMobileB/4, procMobSimB/4]).
+-export([startMobileB/1, startMobileB/4, procMobSimB/4, startMobileBsample1/1]).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % On my system, this function has problems with Glib invoking SCIM.
@@ -35,7 +35,7 @@ createWindowB(ServerB) ->
     % This call triggers the GLib-GObject-WARNING for plug-in GtkIMContextSCIM.
     io:format("Calling wxFrame:new/4.~n", []),
     FrameB = wxFrame:new(ServerB, -1,
-        "Mobile simulation B", [{size, {600, 400}}]),
+        "Mobile simulation B", [{size, {1200, 800}}]),
     % Carriage return. Get the shell text cursor back to the left of the line.
     io:format("~n", []),
 
@@ -463,7 +463,8 @@ handleWindowB(FrameB, DC) ->
             io:format("~p received position event ~p from ~p: "
                 "(~p,~p,~p,~p)~n",
                 [self(), Ntimes, PIDclient, Xold, Yold, Xnew, Ynew]),
-            wxDC:drawCircle(DC, {Xnew, Ynew}, 8),
+            wxDC:drawLine(DC, {Xold, Yold}, {Xnew, Ynew}),
+            wxDC:drawCircle(DC, {Xnew, Ynew}, 5),
             wxDC:drawPoint(DC, {Xnew, Ynew}),
             handleWindowB(FrameB, DC);
 
@@ -514,7 +515,7 @@ startWindowB() ->
 
     % Create a DC (Device Context).
     DC = wxClientDC:new(FrameB),
-%    DC = wxBufferedDC:new(DCclient, {640, 400}),
+%    DC = wxBufferedDC:new(DCclient, {1200, 800}),
 
     % Go into a loop.
     io:format("Start wx event handler~n", []),
@@ -607,3 +608,21 @@ startMobileB(PIDserver) ->
 
 startMobileB(PIDserver, Ntimes, Tsleep, {X, Y, U, V}) ->
     spawn(mobsim2, procMobSimB, [PIDserver, Ntimes, Tsleep, {X, Y, U, V}]).
+
+% Some processes just for amusement.
+startMobileBsample1(PIDserver) ->
+    spawn(mobsim2, procMobSimB, [PIDserver, 8, 1000, {550, 50, -10, 30}]),
+    spawn(mobsim2, procMobSimB, [PIDserver, 6, 1500, {600, 50, -10, 30}]),
+    spawn(mobsim2, procMobSimB, [PIDserver, 4, 2000, {100, 350, 30, -40}]),
+    spawn(mobsim2, procMobSimB, [PIDserver, 5, 2500, {150, 50, 40, 30}]),
+    spawn(mobsim2, procMobSimB, [PIDserver, 8, 1250, {450, 50, -10, 30}]),
+    spawn(mobsim2, procMobSimB, [PIDserver, 3, 3500, {100, 250, 30, -40}]),
+    spawn(mobsim2, procMobSimB, [PIDserver, 5, 3000, {400, 200, -30, 40}]),
+
+    spawn(mobsim2, procMobSimB, [PIDserver, 8, 1100, {550, 50, -10, 30}]),
+    spawn(mobsim2, procMobSimB, [PIDserver, 6, 1600, {600, 550, -10, 30}]),
+    spawn(mobsim2, procMobSimB, [PIDserver, 4, 2300, {600, 350, 30, -40}]),
+    spawn(mobsim2, procMobSimB, [PIDserver, 5, 2800, {150, 650, 40, 30}]),
+    spawn(mobsim2, procMobSimB, [PIDserver, 8, 1450, {950, 250, -10, 30}]),
+    spawn(mobsim2, procMobSimB, [PIDserver, 8, 3700, {800, 650, 30, -40}]),
+    spawn(mobsim2, procMobSimB, [PIDserver, 5, 3350, {1100, 450, -30, 40}]).
