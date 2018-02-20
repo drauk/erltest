@@ -1,6 +1,6 @@
 % src/erlang/mobsim3.erl   2018-2-20   Alan U. Kennington.
 % This module will simulate a mobile network using wxErlang.
-% Work In Progress!!! (I'm just getting started.)
+% Work In Progress!!! (Now introducing display lists and double buffering.)
 % For wx: http://erlang.org/doc/apps/wx/index.html
 % See also file: /usr/local/lib/erlang/lib/wx-1.8.3/examples/simple/hello.erl
 
@@ -311,8 +311,8 @@ createWindowB(ServerB) ->
 % http://erlang.org/doc/man/array.html#is_array-1
 %
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% handleWindowB(FrameB, DC, Dlist) when is_list(Dlist) ->
-handleWindowB(FrameB, DC, Dmap) when is_map(Dmap) ->
+% handleWindowB(FrameB, DCclient, Dlist) when is_list(Dlist) ->
+handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
     receive
         % Try to catch all events in a single case.
         #wx{id=Id, obj=Obj, event=EvtB} ->
@@ -471,7 +471,7 @@ handleWindowB(FrameB, DC, Dmap) when is_map(Dmap) ->
             % returning to the caller is the inner "case" terminates.
             if
                 CarryOn == carry_on ->
-                    handleWindowB(FrameB, DC, Dmap);
+                    handleWindowB(FrameB, DCclient, Dmap);
                 CarryOn == exit_normal ->
                     ok;
                 true ->
@@ -483,15 +483,16 @@ handleWindowB(FrameB, DC, Dmap) when is_map(Dmap) ->
             io:format("~p received position event ~p from ~p: "
                 "(~p,~p,~p,~p)~n",
                 [self(), Ntimes, PIDclient, Xold, Yold, Xnew, Ynew]),
-            wxDC:drawLine(DC, {Xold, Yold}, {Xnew, Ynew}),
-            wxDC:drawCircle(DC, {Xnew, Ynew}, 5),
-            wxDC:drawPoint(DC, {Xnew, Ynew}),
 
             % Update the display list.
 %            DmapNew = Dmap#{ PIDclient => { Xold, Yold, Xnew, Ynew }},
             DmapNew = maps:put(PIDclient, { Xold, Yold, Xnew, Ynew }, Dmap),
             io:format("~p new display list: ~p~n", [self(), DmapNew]),
-            handleWindowB(FrameB, DC, DmapNew);
+
+            % Draw all of the nodes in the display list.
+            drawWindowB(DCclient, DmapNew),
+
+            handleWindowB(FrameB, DCclient, DmapNew);
 
         % Handle finish message from a mobile client.
         { PIDclient, fin, Ntimes, { Xold, Yold, Xnew, Ynew }} ->
@@ -502,13 +503,41 @@ handleWindowB(FrameB, DC, Dmap) when is_map(Dmap) ->
             % Update the display list.
             DmapNew = maps:remove(PIDclient, Dmap),
             io:format("~p new display list: ~p~n", [self(), DmapNew]),
-            handleWindowB(FrameB, DC, DmapNew);
+
+            % Draw all of the nodes in the display list.
+            drawWindowB(DCclient, DmapNew),
+
+            handleWindowB(FrameB, DCclient, DmapNew);
 
         % All other event classes which are "connected".
         Evt ->
             io:format("Process ~p received event ~p~n", [self(), Evt]),
-            handleWindowB(FrameB, DC, Dmap)
+            handleWindowB(FrameB, DCclient, Dmap)
     end.
+
+drawWindowB(DCclient, Dmap) when is_map(Dmap) ->
+    % Create a white brush.
+    BrushBG = wxBrush:new({255, 255, 255}),
+
+    % See http://erlang.org/doc/man/wxBufferedDC.html
+    DCbuf = wxBufferedDC:new(DCclient),
+    wxBufferedDC:setBackground(DCbuf, BrushBG),
+    wxBufferedDC:clear(DCbuf),
+
+    % I really want maps:foreach/2 here, but it doesn't exist.
+    % http://erlang.org/doc/man/maps.html#fold-3
+    % http://erlang.org/doc/man/lists.html#foreach-2
+    FnD = fun(_, { Xo, Yo, Xn, Yn }, AccIn) ->
+        wxDC:drawLine(DCbuf, {Xo, Yo}, {Xn, Yn}),
+        wxDC:drawCircle(DCbuf, {Xn, Yn}, 5),
+        wxDC:drawPoint(DCbuf, {Xn, Yn}),
+        AccIn
+        end,
+    maps:fold(FnD, 0, Dmap),
+
+    % Destroying the BufferedDC transfers the buffer to the ClientDC.
+    wxBufferedDC:destroy(DCbuf),
+    ok.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % This function is intended to be spawned from startMobSimB.
@@ -543,17 +572,19 @@ startWindowB() ->
     wxWindow:show(FrameB),
 
     % Create a DC (Device Context).
-    DC = wxClientDC:new(FrameB),
-%    DC = wxBufferedDC:new(DCclient, {1200, 800}),
+    DCclient = wxClientDC:new(FrameB),
+    BrushBG = wxBrush:new({255, 255, 255}),
+    wxClientDC:setBackground(DCclient, BrushBG),
+    wxClientDC:clear(DCclient),
 
     % Go into a loop.
     io:format("Start wx event handler~n", []),
-%    handleWindowB(FrameB, DC, []),
-    handleWindowB(FrameB, DC, #{}),
+%    handleWindowB(FrameB, DCclient, []),
+    handleWindowB(FrameB, DCclient, #{}),
 
     % Destroy the Device Context.
     io:format("Destroy DC (Device Context)~n", []),
-    wxClientDC:destroy(DC),
+    wxClientDC:destroy(DCclient),
 
     % Destroy the wx server.
     % There can only be one, I think. So there's no need to specify which one.
