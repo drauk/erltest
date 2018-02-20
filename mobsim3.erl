@@ -1,10 +1,10 @@
-% src/erlang/mobsim2.erl   2018-2-20   Alan U. Kennington.
+% src/erlang/mobsim3.erl   2018-2-20   Alan U. Kennington.
 % This module will simulate a mobile network using wxErlang.
 % Work In Progress!!! (I'm just getting started.)
 % For wx: http://erlang.org/doc/apps/wx/index.html
 % See also file: /usr/local/lib/erlang/lib/wx-1.8.3/examples/simple/hello.erl
 
--module(mobsim2).
+-module(mobsim3).
 
 % This includes a large amount of code.
 % File: /usr/local/lib/erlang/lib/wx-1.8.3/src/wx.erl
@@ -292,7 +292,27 @@ createWindowB(ServerB) ->
 % the caller, which is startWindowB/0, which can then call wx:destroy/0.
 % If exit(normal) is called in the inner loop, this function cannot return.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-handleWindowB(FrameB, DC) ->
+% Dmap is the "display map", which lists all objects to be displayed.
+% For lists, see:
+% http://erlang.org/doc/getting_started/seq_prog.html#id62718
+% http://erlang.org/doc/reference_manual/data_types.html#id77524
+% http://erlang.org/doc/reference_manual/expressions.html#id83040
+% http://erlang.org/doc/man/lists.html
+% http://erlang.org/doc/man/erlang.html#is_list-1
+%
+% For maps, see:
+% http://erlang.org/doc/getting_started/seq_prog.html#id62718
+% http://erlang.org/doc/reference_manual/data_types.html#id77432
+% http://erlang.org/doc/reference_manual/expressions.html#id83109
+% http://erlang.org/doc/man/maps.html
+% http://erlang.org/doc/man/erlang.html#is_map-1
+%
+% For arrays, see:
+% http://erlang.org/doc/man/array.html#is_array-1
+%
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% handleWindowB(FrameB, DC, Dlist) when is_list(Dlist) ->
+handleWindowB(FrameB, DC, Dmap) when is_map(Dmap) ->
     receive
         % Try to catch all events in a single case.
         #wx{id=Id, obj=Obj, event=EvtB} ->
@@ -451,7 +471,7 @@ handleWindowB(FrameB, DC) ->
             % returning to the caller is the inner "case" terminates.
             if
                 CarryOn == carry_on ->
-                    handleWindowB(FrameB, DC);
+                    handleWindowB(FrameB, DC, Dmap);
                 CarryOn == exit_normal ->
                     ok;
                 true ->
@@ -466,19 +486,28 @@ handleWindowB(FrameB, DC) ->
             wxDC:drawLine(DC, {Xold, Yold}, {Xnew, Ynew}),
             wxDC:drawCircle(DC, {Xnew, Ynew}, 5),
             wxDC:drawPoint(DC, {Xnew, Ynew}),
-            handleWindowB(FrameB, DC);
+
+            % Update the display list.
+%            DmapNew = Dmap#{ PIDclient => { Xold, Yold, Xnew, Ynew }},
+            DmapNew = maps:put(PIDclient, { Xold, Yold, Xnew, Ynew }, Dmap),
+            io:format("~p new display list: ~p~n", [self(), DmapNew]),
+            handleWindowB(FrameB, DC, DmapNew);
 
         % Handle finish message from a mobile client.
         { PIDclient, fin, Ntimes, { Xold, Yold, Xnew, Ynew }} ->
             io:format("~p received finish event ~p from ~p: "
                 "(~p,~p,~p,~p)~n",
                 [self(), Ntimes, PIDclient, Xold, Yold, Xnew, Ynew]),
-            handleWindowB(FrameB, DC);
+
+            % Update the display list.
+            DmapNew = maps:remove(PIDclient, Dmap),
+            io:format("~p new display list: ~p~n", [self(), DmapNew]),
+            handleWindowB(FrameB, DC, DmapNew);
 
         % All other event classes which are "connected".
         Evt ->
             io:format("Process ~p received event ~p~n", [self(), Evt]),
-            handleWindowB(FrameB, DC)
+            handleWindowB(FrameB, DC, Dmap)
     end.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -519,7 +548,8 @@ startWindowB() ->
 
     % Go into a loop.
     io:format("Start wx event handler~n", []),
-    handleWindowB(FrameB, DC),
+%    handleWindowB(FrameB, DC, []),
+    handleWindowB(FrameB, DC, #{}),
 
     % Destroy the Device Context.
     io:format("Destroy DC (Device Context)~n", []),
@@ -576,58 +606,60 @@ procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y, U, V})
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Test on machine running "erl -sname serverD":
 %
-% >>> mobsim2:startMobSimB().
+% >>> mobsim3:startMobSimB().
 %
 % On second machine, running for example "erl -sname clientD":
 %
-% >>> mobsim2:startMobileB(serverD@hostA, 4, 2000, {100, 350, 30, -40}).
-% mobsim2:startMobileB(serverD@hostA, 5, 2000, {150, 50, 40, 30}).
+% >>> mobsim3:startMobileB(serverD@hostA, 4, 2000, {100, 350, 30, -40}).
+% mobsim3:startMobileB(serverD@hostA, 5, 2000, {150, 50, 40, 30}).
 %
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobSimB() ->
-    io:format("mobsim2 process ~p spawning wxWindow process~n", [self()]),
-    register(pidMobSimWindowB, spawn(mobsim2, startWindowB, [])).
+    io:format("mobsim3 process ~p spawning wxWindow process~n", [self()]),
+    register(pidMobSimWindowB, spawn(mobsim3, startWindowB, [])).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Start a mobile devices, which is a client for the window process.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Test on machine running "erl -sname serverD":
 %
-% (serverD@hostA)42> mobsim2:startMobSimB().
-% mobsim2 process <0.103.0> spawning wxWindow process
+% (serverD@hostA)42> mobsim3:startMobSimB().
+% mobsim3 process <0.103.0> spawning wxWindow process
 % ....
 %
 % On second machine, running for example "erl -sname clientD":
 %
-% mobsim2:startMobileB(serverD@hostA, 7, 2500, {100, 200}).
+% mobsim3:startMobileB(serverD@hostA, 7, 2500, {100, 200}).
 % procMobSimB <0.1727.0> sending pos 7 to serverD@hostA
 % ....
 %
 % Alternatively, run this:
-% mobsim2:startMobileBsample1(serverD@hostA).
+% mobsim3:startMobileBsample1(serverD@hostA).
 % ....
 %
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobileB(PIDserver) ->
-    spawn(mobsim2, procMobSimB, [PIDserver, 5, 2500, {10, 20, 30, 40}]).
+    spawn(mobsim3, procMobSimB, [PIDserver, 5, 2500, {10, 20, 30, 40}]).
 
 startMobileB(PIDserver, Ntimes, Tsleep, {X, Y, U, V}) ->
-    spawn(mobsim2, procMobSimB, [PIDserver, Ntimes, Tsleep, {X, Y, U, V}]).
+    spawn(mobsim3, procMobSimB, [PIDserver, Ntimes, Tsleep, {X, Y, U, V}]).
 
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Some processes just for amusement.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobileBsample1(PIDserver) ->
-    spawn(mobsim2, procMobSimB, [PIDserver, 8, 1000, {550, 50, -10, 30}]),
-    spawn(mobsim2, procMobSimB, [PIDserver, 6, 1500, {600, 50, -10, 30}]),
-    spawn(mobsim2, procMobSimB, [PIDserver, 4, 2000, {100, 350, 30, -40}]),
-    spawn(mobsim2, procMobSimB, [PIDserver, 5, 2500, {150, 50, 40, 30}]),
-    spawn(mobsim2, procMobSimB, [PIDserver, 8, 1250, {450, 50, -10, 30}]),
-    spawn(mobsim2, procMobSimB, [PIDserver, 3, 3500, {100, 250, 30, -40}]),
-    spawn(mobsim2, procMobSimB, [PIDserver, 5, 3000, {400, 200, -30, 40}]),
+    spawn(mobsim3, procMobSimB, [PIDserver, 8, 1000, {550, 50, -10, 30}]),
+    spawn(mobsim3, procMobSimB, [PIDserver, 6, 1500, {600, 50, -10, 30}]),
+    spawn(mobsim3, procMobSimB, [PIDserver, 4, 2000, {100, 350, 30, -40}]),
+    spawn(mobsim3, procMobSimB, [PIDserver, 5, 2500, {150, 50, 40, 30}]),
+    spawn(mobsim3, procMobSimB, [PIDserver, 8, 1250, {450, 50, -10, 30}]),
+    spawn(mobsim3, procMobSimB, [PIDserver, 3, 3500, {100, 250, 30, -40}]),
+    spawn(mobsim3, procMobSimB, [PIDserver, 5, 3000, {400, 200, -30, 40}]),
 
-    spawn(mobsim2, procMobSimB, [PIDserver, 8, 1100, {550, 50, -10, 30}]),
-    spawn(mobsim2, procMobSimB, [PIDserver, 6, 1600, {600, 550, -10, 30}]),
-    spawn(mobsim2, procMobSimB, [PIDserver, 4, 2300, {600, 350, 30, -40}]),
-    spawn(mobsim2, procMobSimB, [PIDserver, 5, 2800, {150, 650, 40, 30}]),
-    spawn(mobsim2, procMobSimB, [PIDserver, 8, 1450, {950, 250, -10, 30}]),
-    spawn(mobsim2, procMobSimB, [PIDserver, 8, 3700, {800, 650, 30, -40}]),
-    spawn(mobsim2, procMobSimB, [PIDserver, 5, 3350, {1100, 450, -30, 40}]).
+    spawn(mobsim3, procMobSimB, [PIDserver, 8, 1100, {550, 50, -10, 30}]),
+    spawn(mobsim3, procMobSimB, [PIDserver, 6, 1600, {600, 550, -10, 30}]),
+    spawn(mobsim3, procMobSimB, [PIDserver, 4, 2300, {600, 350, 30, -40}]),
+    spawn(mobsim3, procMobSimB, [PIDserver, 5, 2800, {150, 650, 40, 30}]),
+    spawn(mobsim3, procMobSimB, [PIDserver, 8, 1450, {950, 250, -10, 30}]),
+    spawn(mobsim3, procMobSimB, [PIDserver, 8, 3700, {800, 650, 30, -40}]),
+    spawn(mobsim3, procMobSimB, [PIDserver, 5, 3350, {1100, 450, -30, 40}]).
