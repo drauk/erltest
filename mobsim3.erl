@@ -1,4 +1,4 @@
-% src/erlang/mobsim3.erl   2018-2-20   Alan U. Kennington.
+% src/erlang/mobsim3.erl   2018-2-21   Alan U. Kennington.
 % This module will simulate a mobile network using wxErlang.
 % Work In Progress!!! (Now introducing display lists and double buffering.)
 % For wx: http://erlang.org/doc/apps/wx/index.html
@@ -515,6 +515,9 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
             handleWindowB(FrameB, DCclient, Dmap)
     end.
 
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Redraw the window using a double buffer technique.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 drawWindowB(DCclient, Dmap) when is_map(Dmap) ->
     % Create a white brush.
     BrushBG = wxBrush:new({255, 255, 255}),
@@ -527,10 +530,12 @@ drawWindowB(DCclient, Dmap) when is_map(Dmap) ->
     % I really want maps:foreach/2 here, but it doesn't exist.
     % http://erlang.org/doc/man/maps.html#fold-3
     % http://erlang.org/doc/man/lists.html#foreach-2
-    FnD = fun(_, { Xo, Yo, Xn, Yn }, AccIn) ->
+    FnD = fun(P, { Xo, Yo, Xn, Yn }, AccIn) ->
+        PIDstring = pid_to_list(P),
         wxDC:drawLine(DCbuf, {Xo, Yo}, {Xn, Yn}),
         wxDC:drawCircle(DCbuf, {Xn, Yn}, 5),
         wxDC:drawPoint(DCbuf, {Xn, Yn}),
+        wxDC:drawText(DCbuf, PIDstring, {Xn, Yn}),
         AccIn
         end,
     maps:fold(FnD, 0, Dmap),
@@ -687,7 +692,7 @@ startMobileBsample1(PIDserver) ->
     spawn(mobsim3, procMobSimB, [PIDserver, 3, 3500, {100, 250, 30, -40}]),
     spawn(mobsim3, procMobSimB, [PIDserver, 5, 3000, {400, 200, -30, 40}]),
 
-    spawn(mobsim3, procMobSimB, [PIDserver, 8, 1100, {550, 50, -10, 30}]),
+    spawn(mobsim3, procMobSimB, [PIDserver, 8, 1150, {750, 50, -10, 30}]),
     spawn(mobsim3, procMobSimB, [PIDserver, 6, 1600, {600, 550, -10, 30}]),
     spawn(mobsim3, procMobSimB, [PIDserver, 4, 2300, {600, 350, 30, -40}]),
     spawn(mobsim3, procMobSimB, [PIDserver, 5, 2800, {150, 650, 40, 30}]),
