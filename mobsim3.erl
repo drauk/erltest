@@ -30,10 +30,11 @@
 %
 % However, a window does in fact appear!!!
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-createWindowB(ServerB) ->
+createFrameB(ServerB) ->
     % Create a frame on the X server.
     % This call triggers the GLib-GObject-WARNING for plug-in GtkIMContextSCIM.
     io:format("Calling wxFrame:new/4.~n", []),
+    % http://erlang.org/doc/man/wxFrame.html
     FrameB = wxFrame:new(ServerB, -1,
         "Mobile simulation B", [{size, {1200, 800}}]),
     % Carriage return. Get the shell text cursor back to the left of the line.
@@ -52,9 +53,62 @@ createWindowB(ServerB) ->
     wxFrame:createToolBar(FrameB, []),
     % Carriage return. Get the shell text cursor back to the left of the line.
 
+    % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    % Create MenuBar 1.
+    % http://erlang.org/doc/man/wxMenuBar.html
+    io:format("Calling wxMenuBar:new/0.~n", []),
+    MenuBar1 = wxMenuBar:new(),
+
+    % - - - - - - - - - - - - - - - - - -
+    % Create Menu 1.
+    % http://erlang.org/doc/man/wxMenu.html
+    io:format("Calling wxMenu:new/1.~n", []),
+    Menu1 = wxMenu:new([]),
+
+    % Add Menu 1 to the MenuBar.
+    io:format("Calling wxMenuBar:append/3.~n", []),
+    wxMenuBar:append(MenuBar1, Menu1, "Menu 1"),
+
+    % Create a MenuItem.
+    % http://erlang.org/doc/man/wxMenuItem.html
+    % This MenuItem becomes a Separator if "id" is not set!
+    io:format("Calling wxMenuItem:new/1.~n", []),
+    MenuItem1 = wxMenuItem:new(
+%        [{parentMenu, Menu1}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1"}]),
+        [{id, ?wxID_ANY}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1x"}]),
+
+    % Add menu items to Menu 1.
+    io:format("Calling wxMenu:append/2.~n", []),
+%    MenuItem1a = wxMenu:append(Menu1, MenuItem1),
+    wxMenu:append(Menu1, MenuItem1),
+%    io:format("Calling wxMenu:appendSeparator/1.~n", []),
+%    wxMenu:appendSeparator(Menu1),
+
+    % This does override the wxMenuItem:new/2 setting for "text".
+    io:format("Calling wxMenuItem:setText/2.~n", []),
+    wxMenuItem:setText(MenuItem1, "Menu Item 1"),
+    io:format("Calling wxMenuItem:enable/1.~n", []),
+    wxMenuItem:enable(MenuItem1, [{enable, true}]),
+
+    % Add Quit item to Menu 1.
+    io:format("Calling wxMenu:appendSeparator/1.~n", []),
+    wxMenu:appendSeparator(Menu1),
+    io:format("Calling wxMenu:append/3.~n", []),
+    wxMenu:append(Menu1, ?wxID_EXIT, "&Quit"),
+
+    io:format("Calling wxMenuBar:enable/1.~n", []),
+    wxMenuBar:enable(MenuBar1),
+
+    % - - - - - - - - - - - - - - - - - -
+    % Add the MenuBar to the Frame.
+    io:format("Calling wxMenuBar:enable/1.~n", []),
+    wxFrame:setMenuBar(FrameB, MenuBar1),
+
+    % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     % Set keyboard focus.
     % This seems to have no effect.
 %    wxFrame:setFocus(FrameB),
+    io:format("Calling wxWindow:setFocus/1.~n", []),
     wxWindow:setFocus(FrameB),
 
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -107,6 +161,10 @@ createWindowB(ServerB) ->
 
     % wxCommand
     % (Too big, and not relevant enough to list here.)
+    wxFrame:connect(FrameB, command_menu_selected),
+    wxFrame:connect(FrameB, command_text_enter),
+    wxFrame:connect(FrameB, command_set_focus),
+    wxFrame:connect(FrameB, command_enter),
 
     % wxContextMenu
     wxFrame:connect(FrameB, context_menu),
@@ -159,6 +217,7 @@ createWindowB(ServerB) ->
     wxFrame:connect(FrameB, joy_zmove),
 
     % wxKey
+    % These never arrive.
     wxFrame:connect(FrameB, 'char'),
     wxFrame:connect(FrameB, char_hook),
     wxFrame:connect(FrameB, key_down),
@@ -201,6 +260,7 @@ createWindowB(ServerB) ->
     wxFrame:connect(FrameB, command_notebook_page_changing),
 
     % wxPaint
+    % This means refresh the frame because of exposure of hidden regions.
     wxFrame:connect(FrameB, paint),
 
     % wxPaletteChanged
@@ -234,7 +294,8 @@ createWindowB(ServerB) ->
     wxFrame:connect(FrameB, scrollwin_thumbrelease),
 
     % wxSetCursor
-    wxFrame:connect(FrameB, set_cursor),
+    % This generates a huge number of events!
+%    wxFrame:connect(FrameB, set_cursor),
 
     % wxShow
     wxFrame:connect(FrameB, show),
@@ -264,7 +325,8 @@ createWindowB(ServerB) ->
     % (Too many to list. Probably not relevant.)
 
     % wxUpdateUI
-    wxFrame:connect(FrameB, update_ui),
+    % This generates a huge number of events!
+%    wxFrame:connect(FrameB, update_ui),
 
     % wxWindowCreate
     wxFrame:connect(FrameB, create),
@@ -279,6 +341,24 @@ createWindowB(ServerB) ->
 
     % Return the newly created frame.
     FrameB.
+%    WindowB.
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Create a window as a child object of a given frame.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+createWindowB(FrameB) ->
+    % Create a window on the X server.
+    % This call triggers the GLib-GObject-WARNING for plug-in GtkIMContextSCIM.
+    io:format("Calling wxWindow:new/2.~n", []),
+
+    % Carriage return. Get the shell text cursor back to the left of the line.
+%    io:format("~n", []),
+
+    % Create a window within the frame.
+    WindowB = wxWindow:new(FrameB, ?wxID_ANY),
+    wxWindow:setBackgroundColour(WindowB, ?wxWHITE),
+
+    WindowB.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Event-handling loop for FrameB window.
@@ -420,6 +500,24 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
                 end,
                 carry_on;
 
+            #wxPaint{type=TypeB} ->
+                case TypeB of
+                paint ->
+                    io:format("window paint event=~p~n", [EvtB]),
+                    % Create temporary context for the refresh.
+                 % http://docs.wxwidgets.org/2.8.12/wx_wxpaintdc.html#wxpaintdc
+                    DCpaint = wxPaintDC:new(FrameB),
+
+                    % Draw all of the nodes in the display list.
+                    drawWindowB(DCpaint, Dmap),
+
+                    % Clean out the trash.
+                    wxPaintDC:destroy(DCpaint);
+                _Else ->
+                    io:format("window paint event: unknown type=~p ", [TypeB])
+                end,
+                carry_on;
+
             % The returned rectangle is always {0, 0, 0, 0}. Not good!?
             #wxSize{type=TypeB, size={Ws, Hs}, rect={Xr, Yr, Wr, Hr}} ->
                 case TypeB of
@@ -463,6 +561,8 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
 
             % No matching event class.
             _Else ->
+                io:format("Process ~p event id=~p, obj=~p, event=~n ~p~n",
+                    [self(), Id, Obj, EvtB]),
                 carry_on
             end,
 
@@ -529,7 +629,9 @@ drawWindowB(DCclient, Dmap) when is_map(Dmap) ->
     BrushBG = wxBrush:new({255, 255, 255}),
 
     % See http://erlang.org/doc/man/wxBufferedDC.html
+    % http://docs.wxwidgets.org/3.0/classwx_buffered_d_c.html
     DCbuf = wxBufferedDC:new(DCclient),
+
     wxBufferedDC:setBackground(DCbuf, BrushBG),
     wxBufferedDC:clear(DCbuf),
 
@@ -576,14 +678,35 @@ startWindowB() ->
     % See also http://erlang.org/doc/reference_manual/expressions.html#funs
     % See also http://erlang.org/doc/reference_manual/data_types.html#id66389
     % wx:batch/2 apparently returns the return value from the batched function.
-    FrameB = wx:batch(fun() -> createWindowB(ServerB) end),
+    FrameB = wx:batch(fun() -> createFrameB(ServerB) end),
+
+    % Should I be batching this?
+%    WindowB = wx:batch(fun() -> createWindowB(FrameB) end),
+%    WindowB = createWindowB(FrameB),
 
     % Show the frame.
     io:format("Show wx frame~n", []),
     wxWindow:show(FrameB),
 
     % Create a DC (Device Context).
+    % http://erlang.org/doc/man/wxClientDC.html
+    % http://docs.wxwidgets.org/3.0/classwx_client_d_c.html
     DCclient = wxClientDC:new(FrameB),
+%    DCclient = wxClientDC:new(WindowB),
+
+    % See http://erlang.org/doc/man/wxBufferedPaintDC.html
+    % http://docs.wxwidgets.org/3.0/classwx_buffered_paint_d_c.html
+    % This doesn't work. Nnothing gets drawn. Back to the drawing board!
+%    DCclient = wxBufferedPaintDC:new(FrameB),
+
+    % Create a DC (Device Context).
+    % http://erlang.org/doc/man/wxPaintDC.html
+    % http://docs.wxwidgets.org/3.0/classwx_paint_d_c.html
+    % This works just like wxClientDC:new(FrameB). Receives no wxPaint events!
+    % This is only supposed to be used within the paint event handler.
+    % But this event never arrives!
+%    DCclient = wxPaintDC:new(FrameB),
+
     BrushBG = wxBrush:new({255, 255, 255}),
     wxClientDC:setBackground(DCclient, BrushBG),
     wxClientDC:clear(DCclient),
@@ -592,6 +715,7 @@ startWindowB() ->
     io:format("Start wx event handler~n", []),
 %    handleWindowB(FrameB, DCclient, []),
     handleWindowB(FrameB, DCclient, #{}),
+%    handleWindowB(WindowB, DCclient, #{}),
 
     % Destroy the Device Context.
     io:format("Destroy DC (Device Context)~n", []),
