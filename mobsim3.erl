@@ -328,8 +328,8 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
                 close_window ->
                     io:format("Process ~p closing window id=~p, obj=~p~n",
                         [self(), Id, Obj]),
-                    wxFrame:setStatusText(FrameB, "Closing soon...", []),
-                    timer:sleep(2000),
+                    wxFrame:setStatusText(FrameB, "Closing now...", []),
+%                    timer:sleep(2000),
                     wxWindow:destroy(FrameB),
 %                    exit(normal);
                     exit_normal;
@@ -337,8 +337,8 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
                 end_session ->
                     io:format("Process ~p ending session id=~p, obj=~p~n",
                         [self(), Id, Obj]),
-                    wxFrame:setStatusText(FrameB, "Ending session soon...", []),
-                    timer:sleep(2000),
+                    wxFrame:setStatusText(FrameB, "Ending session now...", []),
+%                    timer:sleep(2000),
                     wxWindow:destroy(FrameB),
 %                    exit(normal);
                     exit_normal;
@@ -484,6 +484,9 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
                 "(~p,~p,~p,~p)~n",
                 [self(), Ntimes, PIDclient, Xold, Yold, Xnew, Ynew]),
 
+            % Confirm receipt of the data.
+            PIDclient ! { self(), pos_resp, Ntimes },
+
             % Update the display list.
 %            DmapNew = Dmap#{ PIDclient => { Xold, Yold, Xnew, Ynew }},
             DmapNew = maps:put(PIDclient, { Xold, Yold, Xnew, Ynew }, Dmap),
@@ -499,6 +502,9 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
             io:format("~p received finish event ~p from ~p: "
                 "(~p,~p,~p,~p)~n",
                 [self(), Ntimes, PIDclient, Xold, Yold, Xnew, Ynew]),
+
+            % Confirm receipt of the data.
+            PIDclient ! { self(), fin_resp, Ntimes },
 
             % Update the display list.
             DmapNew = maps:remove(PIDclient, Dmap),
@@ -607,14 +613,17 @@ procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y, U, V})
     Xnew = X + U, Ynew = Y + V,
     io:format("procMobSimB ~p sending pos ~p to ~p: ~p~n",
         [self(), Ntimes, PIDserver, {X, Y, Xnew, Ynew}]),
+
+    % Send the message.
     { pidMobSimWindowB, PIDserver } !
         { self(), pos, Ntimes, {X, Y, Xnew, Ynew} },
+
+    % Wait for a response which might not arrive.
+    Tout = 1000,
     io:format("procMobSimB ~p waiting for response [~p]~n", [self(), Ntimes]),
-    % Wait for something which probably won't arrive.
-    Tout = 3000,
     receive
-        { PIDserverRX, resp, NtimesRX } ->
-            io:format("procMobSimB ~p received response ~p from ~p~n",
+        { PIDserverRX, pos_resp, NtimesRX } ->
+            io:format("procMobSimB ~p received pos_resp response ~p from ~p~n",
                 [self(), NtimesRX, PIDserverRX])
     after
         % Time-out handler.
@@ -622,18 +631,40 @@ procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y, U, V})
             io:format("procMobSimB ~p time-out after ~p mS~n",
                 [self(), Tout])
     end,
+
+    % Wait for a while before sending next message.
     io:format("procMobSimB ~p sleep ~p~n", [self(), Tsleep]),
     timer:sleep(Tsleep),
     procMobSimB(PIDserver, Ntimes - 1, Tsleep, {Xnew, Ynew, U, V});
-procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y, U, V})
+
+% The last wake-up before terminating.
+procMobSimB(PIDserver, Ntimes, _, {X, Y, U, V})
         when is_integer(Ntimes) andalso Ntimes =< 0
-        andalso is_number(Tsleep) andalso Tsleep >= 0 ->
+%        andalso is_number(Tsleep) andalso Tsleep >= 0 ->
+        ->
     Xnew = X + U, Ynew = Y + V,
     io:format("procMobSimB ~p sending fin to server ~p [~p]~n",
         [self(), PIDserver, Ntimes]),
+
+    % Send the message.
     { pidMobSimWindowB, PIDserver } !
         { self(), fin, Ntimes, {X, Y, Xnew, Ynew}},
-    timer:sleep(Tsleep),
+
+    % Wait for a response which might not arrive.
+    Tout = 1000,
+    io:format("procMobSimB ~p waiting for response [~p]~n", [self(), Ntimes]),
+    receive
+        { PIDserverRX, fin_resp, NtimesRX } ->
+            io:format("procMobSimB ~p received fin_resp response ~p from ~p~n",
+                [self(), NtimesRX, PIDserverRX])
+    after
+        % Time-out handler.
+        Tout ->
+            io:format("procMobSimB ~p time-out after ~p mS~n",
+                [self(), Tout])
+    end,
+
+%    timer:sleep(Tsleep),
     io:format("procMobSimB ~p END~n", [self()]).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -697,5 +728,5 @@ startMobileBsample1(PIDserver) ->
     spawn(mobsim3, procMobSimB, [PIDserver, 4, 2300, {600, 350, 30, -40}]),
     spawn(mobsim3, procMobSimB, [PIDserver, 5, 2800, {150, 650, 40, 30}]),
     spawn(mobsim3, procMobSimB, [PIDserver, 8, 1450, {950, 250, -10, 30}]),
-    spawn(mobsim3, procMobSimB, [PIDserver, 8, 3700, {800, 650, 30, -40}]),
+    spawn(mobsim3, procMobSimB, [PIDserver, 6, 3650, {800, 650, 30, -40}]),
     spawn(mobsim3, procMobSimB, [PIDserver, 5, 3350, {1100, 450, -30, 40}]).
