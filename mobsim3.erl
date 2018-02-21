@@ -590,6 +590,14 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
             % Update the display list.
 %            DmapNew = Dmap#{ PIDclient => { Xold, Yold, Xnew, Ynew }},
             DmapNew = maps:put(PIDclient, { Xold, Yold, Xnew, Ynew }, Dmap),
+            Nmobs = erlang:map_size(DmapNew),
+            StrNmobs = integer_to_list(Nmobs),
+
+            % Status text at the bottom of the window.
+            % See http://erlang.org/doc/man/wxFrame.html#setStatusText-2
+            ok = wxFrame:setStatusText(FrameB,
+                string:join(["Status: N mobiles = ", StrNmobs], ""), []),
+
             io:format("~p new display list: ~p~n", [self(), DmapNew]),
 
             % Draw all of the nodes in the display list.
@@ -608,6 +616,14 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
 
             % Update the display list.
             DmapNew = maps:remove(PIDclient, Dmap),
+            Nmobs = erlang:map_size(DmapNew),
+            StrNmobs = integer_to_list(Nmobs),
+
+            % Status text at the bottom of the window.
+            % See http://erlang.org/doc/man/wxFrame.html#setStatusText-2
+            ok = wxFrame:setStatusText(FrameB,
+                string:join(["Status: N mobiles = ", StrNmobs], ""), []),
+
             io:format("~p new display list: ~p~n", [self(), DmapNew]),
 
             % Draw all of the nodes in the display list.
