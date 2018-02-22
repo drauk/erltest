@@ -52,6 +52,7 @@
 % There should be a systematic way to allocate these ID values.
 -define(MENU_ITEM_1, 1001).
 -define(MENU_ITEM_2, 1002).
+-define(MENU_ITEM_3, 1003).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Concatenate a list of strings.
@@ -190,33 +191,38 @@ createFrameB(ServerB) ->
     % This MenuItem becomes a Separator if "id" is not set!
     io:format("Calling wxMenuItem:new/1.~n", []),
     MenuItem1 = wxMenuItem:new(
-%        [{parentMenu, Menu1}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1"}]),
-%        [{id, ?wxID_ANY}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1x"}]),
-        [{id, ?MENU_ITEM_1}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1x"}]),
+        [{id, ?MENU_ITEM_1}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1"}]),
     io:format("Calling wxMenuItem:new/1.~n", []),
     MenuItem2 = wxMenuItem:new(
         [{id, ?MENU_ITEM_2}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 2"}]),
+    io:format("Calling wxMenuItem:new/1.~n", []),
+    MenuItem3 = wxMenuItem:new(
+        [{id, ?MENU_ITEM_3}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 3"}]),
 
     % Add menu items to Menu 1.
     io:format("Calling wxMenu:append/2.~n", []),
-%    MenuItem1a = wxMenu:append(Menu1, MenuItem1),
     wxMenu:append(Menu1, MenuItem1),
-%    io:format("Calling wxMenu:appendSeparator/1.~n", []),
-%    wxMenu:appendSeparator(Menu1),
 
     io:format("Calling wxMenu:append/2.~n", []),
     wxMenu:append(Menu1, MenuItem2),
+    io:format("Calling wxMenu:append/2.~n", []),
+    wxMenu:append(Menu1, MenuItem3),
 
     % This does override the wxMenuItem:new/2 setting for "text".
     io:format("Calling wxMenuItem:setText/2.~n", []),
-    wxMenuItem:setText(MenuItem1, "Menu Item 1"),
+    wxMenuItem:setText(MenuItem1, "Nodes are red"),
     io:format("Calling wxMenuItem:enable/1.~n", []),
     wxMenuItem:enable(MenuItem1, [{enable, true}]),
 
     io:format("Calling wxMenuItem:setText/2.~n", []),
-    wxMenuItem:setText(MenuItem2, "Menu Item 2"),
+    wxMenuItem:setText(MenuItem2, "Nodes are green"),
     io:format("Calling wxMenuItem:enable/1.~n", []),
     wxMenuItem:enable(MenuItem2, [{enable, true}]),
+
+    io:format("Calling wxMenuItem:setText/2.~n", []),
+    wxMenuItem:setText(MenuItem3, "Nodes are blue"),
+    io:format("Calling wxMenuItem:enable/1.~n", []),
+    wxMenuItem:enable(MenuItem3, [{enable, true}]),
 
     % Add Quit item to Menu 1.
     io:format("Calling wxMenu:appendSeparator/1.~n", []),
@@ -503,14 +509,18 @@ createFrameB(ServerB) ->
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Redraw the window from the current display list.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-drawWindowB(DCclient, Dmap) when is_map(Dmap) ->
+drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
     % See http://erlang.org/doc/man/wxBufferedDC.html
     % http://docs.wxwidgets.org/3.0/classwx_buffered_d_c.html
     DCbuf = wxBufferedDC:new(DCclient),
 
     % Create a white brush.
     BrushBG = wxBrush:new({255, 255, 255}),
-    BrushCircle = wxBrush:new({128, 255, 128}),
+
+    % Create the brush for the nodes, with default colour if not found.
+    % http://erlang.org/doc/man/maps.html#get-3
+    ColNode = maps:get(colNode, Vars, {128, 255, 128}),
+    BrushCircle = wxBrush:new(ColNode),
 
     wxBufferedDC:setBackground(DCbuf, BrushBG),
     wxBufferedDC:clear(DCbuf),
@@ -574,7 +584,8 @@ drawWindowB(DCclient, Dmap) when is_map(Dmap) ->
 %
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % handleWindowB(FrameB, DCclient, Dlist) when is_list(Dlist) ->
-handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
+handleWindowB(FrameB, DCclient, Dmap, Vars)
+        when is_map(Dmap) andalso is_map(Vars) ->
     receive
         % Try to catch all events in a single case.
         #wx{id=Id, obj=Obj, event=EvtB} ->
@@ -583,6 +594,9 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
 %                [self(), Id, Obj, EvtB]),
 
             % Each case must return carry_on or exit_normal.
+            % Alternatively let CarryOn equal a new version of Vars.
+            % This might seem bizarre, but what else can you do if all
+            % variables are constant?
             CarryOn = case EvtB of
             #wxClose{type=TypeB} ->
                 case TypeB of
@@ -635,14 +649,32 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
                     case Id of
                         % http://docs.wxwidgets.org/2.8.12/wx_stdevtid.html
                         ?wxID_EXIT ->
-                            io:format("Exit due to menu item selection", []),
+                            io:format("Exit due to menu item selection~n", []),
                             exit_normal;
                         ?MENU_ITEM_1 ->
                             io:format("Menu item 1 was clicked~n", []),
-                            carry_on;
+                            % Change the node colour.
+                            % http://erlang.org/doc/man/maps.html#put-3
+                            % Yes, I realise the VarsNew is superfluous!
+                            VarsNew = maps:put(colNode, {255, 128, 128}, Vars),
+                            VarsNew;
+%                            carry_on;
                         ?MENU_ITEM_2 ->
                             io:format("Menu item 2 was clicked~n", []),
-                            carry_on;
+                            % Change the node colour.
+                            % http://erlang.org/doc/man/maps.html#put-3
+                            % Yes, I realise the VarsNew is superfluous!
+                            VarsNew = maps:put(colNode, {128, 255, 128}, Vars),
+                            VarsNew;
+%                            carry_on;
+                        ?MENU_ITEM_3 ->
+                            io:format("Menu item 3 was clicked~n", []),
+                            % Change the node colour.
+                            % http://erlang.org/doc/man/maps.html#put-3
+                            % Yes, I realise the VarsNew is superfluous!
+                            VarsNew = maps:put(colNode, {128, 128, 255}, Vars),
+                            VarsNew;
+%                            carry_on;
                         _Else ->
                             carry_on
                     end;
@@ -720,7 +752,7 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
                     DCpaint = wxPaintDC:new(FrameB),
 
                     % Draw all of the nodes in the display list.
-                    drawWindowB(DCpaint, Dmap),
+                    drawWindowB(DCpaint, Dmap, Vars),
 
                     % Clean out the trash.
                     wxPaintDC:destroy(DCpaint);
@@ -782,13 +814,20 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
             % returning to the caller is the inner "case" terminates.
             if
                 CarryOn == carry_on ->
-                    handleWindowB(FrameB, DCclient, Dmap);
+                    handleWindowB(FrameB, DCclient, Dmap, Vars);
                 CarryOn == exit_normal ->
+                    io:format("~p wx event handler normal exit~n", [self()]),
                     ok;
+                is_map(CarryOn) ->
+                    io:format("~p wx event handler changed Vars~n", [self()]),
+                    handleWindowB(FrameB, DCclient, Dmap, CarryOn);
                 true ->
+                    io:format("~p wx event handler abnormal exit: CarryOn=~p~n",
+                        [self(), CarryOn]),
                     ok
             end;
 
+        % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         % Handle position message from a mobile client.
         { PIDclient, pos, Ntimes, { Xold, Yold, Xnew, Ynew }} ->
             io:format("~p received position event ~p from ~p: "
@@ -802,6 +841,7 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
 %            DmapNew = Dmap#{ PIDclient => { Xold, Yold, Xnew, Ynew, Ntimes }},
             DmapNew = maps:put(PIDclient,
                 { Xold, Yold, Xnew, Ynew, Ntimes }, Dmap),
+            % See also http://erlang.org/doc/man/maps.html#size-1
             Nmobs = erlang:map_size(DmapNew),
             StrNmobs = integer_to_list(Nmobs),
 
@@ -813,9 +853,9 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
             io:format("~p new display list: ~p~n", [self(), DmapNew]),
 
             % Draw all of the nodes in the display list.
-            drawWindowB(DCclient, DmapNew),
+            drawWindowB(DCclient, DmapNew, Vars),
 
-            handleWindowB(FrameB, DCclient, DmapNew);
+            handleWindowB(FrameB, DCclient, DmapNew, Vars);
 
         % Handle finish message from a mobile client.
         { PIDclient, fin, Ntimes, { Xold, Yold, Xnew, Ynew }} ->
@@ -839,14 +879,15 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
             io:format("~p new display list: ~p~n", [self(), DmapNew]),
 
             % Draw all of the nodes in the display list.
-            drawWindowB(DCclient, DmapNew),
+            drawWindowB(DCclient, DmapNew, Vars),
 
-            handleWindowB(FrameB, DCclient, DmapNew);
+            handleWindowB(FrameB, DCclient, DmapNew, Vars);
 
+        % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         % All other event classes which are "connected".
         Evt ->
             io:format("Process ~p received event ~p~n", [self(), Evt]),
-            handleWindowB(FrameB, DCclient, Dmap)
+            handleWindowB(FrameB, DCclient, Dmap, Vars)
     end.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -892,7 +933,7 @@ startWindowB() ->
 
     % Go into a loop.
     io:format("Start wx event handler~n", []),
-    handleWindowB(FrameB, DCclient, #{}),
+    handleWindowB(FrameB, DCclient, #{}, #{}),
 
     % Destroy the Brush.
     io:format("Destroy background Brush~n", []),
