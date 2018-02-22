@@ -1,8 +1,7 @@
 % src/erlang/mobsim3.erl   2018-2-22   Alan U. Kennington.
 % This module will simulate a mobile network using wxErlang.
-% Work In Progress!!! (Now introducing display lists and double buffering.)
-% For wx: http://erlang.org/doc/apps/wx/index.html
-% See also file: /usr/local/lib/erlang/lib/wx-1.8.3/examples/simple/hello.erl
+% Work In Progress!!!
+% Added display lists and double buffering.
 
 -module(mobsim3).
 
@@ -35,8 +34,9 @@ createFrameB(ServerB) ->
     % This call triggers the GLib-GObject-WARNING for plug-in GtkIMContextSCIM.
     io:format("Calling wxFrame:new/4.~n", []),
     % http://erlang.org/doc/man/wxFrame.html
+    % http://docs.wxwidgets.org/2.8.12/wx_wxframe.html#wxframewxframe
     FrameB = wxFrame:new(ServerB, -1,
-        "Mobile simulation B", [{size, {1200, 800}}]),
+        "Mobile simulation B", [{pos, {0, 0}}, {size, {1200, 800}}]),
     % Carriage return. Get the shell text cursor back to the left of the line.
     io:format("~n", []),
 
@@ -353,10 +353,45 @@ createFrameB(ServerB) ->
 % See http://erlang.org/doc/man/lists.html#join-2
 % See http://erlang.org/doc/man/unicode.html#characters_to_list-1
 % See http://erlang.org/doc/man/unicode.html#characters_to_binary-1
+% Binaries, see http://erlang.org/doc/reference_manual/data_types.html#id65566
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 stringListCat(L) when is_list(L) ->
+    % Using two separate lines here assists diagnosis in case of errors.
     L2 = unicode:characters_to_list(L),
-    unicode:characters_to_list(L2).
+    unicode:characters_to_binary(L2).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Redraw the window from the current display list.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+drawWindowB(DCclient, Dmap) when is_map(Dmap) ->
+    % Create a white brush.
+    BrushBG = wxBrush:new({255, 255, 255}),
+
+    % See http://erlang.org/doc/man/wxBufferedDC.html
+    % http://docs.wxwidgets.org/3.0/classwx_buffered_d_c.html
+    DCbuf = wxBufferedDC:new(DCclient),
+
+    wxBufferedDC:setBackground(DCbuf, BrushBG),
+    wxBufferedDC:clear(DCbuf),
+
+    % I really want maps:foreach/2 here, but it doesn't exist.
+    % http://erlang.org/doc/man/maps.html#fold-3
+    % http://erlang.org/doc/man/lists.html#foreach-2
+    FnD = fun(P, { Xold, Yold, Xnew, Ynew, Nevt }, AccIn) ->
+        PIDstring = pid_to_list(P),
+        wxDC:drawLine(DCbuf, {Xold, Yold}, {Xnew, Ynew}),
+        wxDC:drawCircle(DCbuf, {Xnew, Ynew}, 5),
+        wxDC:drawPoint(DCbuf, {Xnew, Ynew}),
+        wxDC:drawText(DCbuf,
+            stringListCat([PIDstring, " ", integer_to_list(Nevt)]),
+            {Xnew, Ynew}),
+        AccIn
+        end,
+    maps:fold(FnD, 0, Dmap),
+
+    % Destroying the BufferedDC transfers the buffer to the ClientDC.
+    wxBufferedDC:destroy(DCbuf),
+    ok.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Event-handling loop for FrameB window.
@@ -584,8 +619,9 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
             PIDclient ! { self(), pos_resp, Ntimes },
 
             % Update the display list.
-%            DmapNew = Dmap#{ PIDclient => { Xold, Yold, Xnew, Ynew }},
-            DmapNew = maps:put(PIDclient, { Xold, Yold, Xnew, Ynew }, Dmap),
+%            DmapNew = Dmap#{ PIDclient => { Xold, Yold, Xnew, Ynew, Ntimes }},
+            DmapNew = maps:put(PIDclient,
+                { Xold, Yold, Xnew, Ynew, Ntimes }, Dmap),
             Nmobs = erlang:map_size(DmapNew),
             StrNmobs = integer_to_list(Nmobs),
 
@@ -632,37 +668,6 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
             io:format("Process ~p received event ~p~n", [self(), Evt]),
             handleWindowB(FrameB, DCclient, Dmap)
     end.
-
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% Redraw the window using a double buffer technique.
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-drawWindowB(DCclient, Dmap) when is_map(Dmap) ->
-    % Create a white brush.
-    BrushBG = wxBrush:new({255, 255, 255}),
-
-    % See http://erlang.org/doc/man/wxBufferedDC.html
-    % http://docs.wxwidgets.org/3.0/classwx_buffered_d_c.html
-    DCbuf = wxBufferedDC:new(DCclient),
-
-    wxBufferedDC:setBackground(DCbuf, BrushBG),
-    wxBufferedDC:clear(DCbuf),
-
-    % I really want maps:foreach/2 here, but it doesn't exist.
-    % http://erlang.org/doc/man/maps.html#fold-3
-    % http://erlang.org/doc/man/lists.html#foreach-2
-    FnD = fun(P, { Xo, Yo, Xn, Yn }, AccIn) ->
-        PIDstring = pid_to_list(P),
-        wxDC:drawLine(DCbuf, {Xo, Yo}, {Xn, Yn}),
-        wxDC:drawCircle(DCbuf, {Xn, Yn}, 5),
-        wxDC:drawPoint(DCbuf, {Xn, Yn}),
-        wxDC:drawText(DCbuf, PIDstring, {Xn, Yn}),
-        AccIn
-        end,
-    maps:fold(FnD, 0, Dmap),
-
-    % Destroying the BufferedDC transfers the buffer to the ClientDC.
-    wxBufferedDC:destroy(DCbuf),
-    ok.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % This function is intended to be spawned from startMobSimB.
