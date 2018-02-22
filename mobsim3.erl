@@ -47,6 +47,12 @@
 % -export([getSname/0, handle_event/2]).
 -export([getSname/0]).
 
+% Some constants for menu items.
+% Must avoid range 5000 to 600, and probably below about 120 also.
+% There should be a systematic way to allocate these ID values.
+-define(MENU_ITEM_1, 1001).
+-define(MENU_ITEM_2, 1002).
+
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Concatenate a list of strings.
 % This should be called string:join/1, but string:* is deprecated.
@@ -93,6 +99,25 @@ getSname() ->
 getHostname() ->
     {ok, H} = inet:gethostname(),
     H.
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Remove the angle brackets from around a PID's string.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pidNoBrackets(Pid) when is_pid(Pid) ->
+    % Using separate lines makes debugging easier.
+    L1 = pid_to_list(Pid),
+    L2 = string:replace(L1, "<", "", all),
+    string:replace(L2, ">", "", all).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Return one of the components of a PID's string.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pidComponent(Pid, I) when is_pid(Pid)
+        andalso is_integer(I) andalso I >= 1 andalso I =< 3  ->
+    % Using separate lines makes debugging easier.
+    L1 = pidNoBrackets(Pid),
+    L2 = string:split(L1, ".", all),
+    lists:sublist(L2, I, 1).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % On my system, this function has problems with Glib invoking SCIM.
@@ -166,8 +191,11 @@ createFrameB(ServerB) ->
     io:format("Calling wxMenuItem:new/1.~n", []),
     MenuItem1 = wxMenuItem:new(
 %        [{parentMenu, Menu1}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1"}]),
-        [{id, ?wxID_ANY}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1x"}]),
-%        [{id, 777}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1x"}]),
+%        [{id, ?wxID_ANY}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1x"}]),
+        [{id, ?MENU_ITEM_1}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1x"}]),
+    io:format("Calling wxMenuItem:new/1.~n", []),
+    MenuItem2 = wxMenuItem:new(
+        [{id, ?MENU_ITEM_2}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 2"}]),
 
     % Add menu items to Menu 1.
     io:format("Calling wxMenu:append/2.~n", []),
@@ -176,16 +204,26 @@ createFrameB(ServerB) ->
 %    io:format("Calling wxMenu:appendSeparator/1.~n", []),
 %    wxMenu:appendSeparator(Menu1),
 
+    io:format("Calling wxMenu:append/2.~n", []),
+    wxMenu:append(Menu1, MenuItem2),
+
     % This does override the wxMenuItem:new/2 setting for "text".
     io:format("Calling wxMenuItem:setText/2.~n", []),
     wxMenuItem:setText(MenuItem1, "Menu Item 1"),
     io:format("Calling wxMenuItem:enable/1.~n", []),
     wxMenuItem:enable(MenuItem1, [{enable, true}]),
 
+    io:format("Calling wxMenuItem:setText/2.~n", []),
+    wxMenuItem:setText(MenuItem2, "Menu Item 2"),
+    io:format("Calling wxMenuItem:enable/1.~n", []),
+    wxMenuItem:enable(MenuItem2, [{enable, true}]),
+
     % Add Quit item to Menu 1.
     io:format("Calling wxMenu:appendSeparator/1.~n", []),
     wxMenu:appendSeparator(Menu1),
     io:format("Calling wxMenu:append/3.~n", []),
+    % Standard events IDs: http://docs.wxwidgets.org/2.8.12/wx_stdevtid.html
+    % Avoid the range 5000 to 6000.
     wxMenu:append(Menu1, ?wxID_EXIT, "&Quit"),
 
     io:format("Calling wxMenuBar:enable/1.~n", []),
@@ -261,7 +299,6 @@ createFrameB(ServerB) ->
 %        [{callback, CmdMenuSelHand}]),
 
     % wxCommand
-    % (Partial list of commands only.)
     wxFrame:connect(FrameB, command_button_clicked),
     wxFrame:connect(FrameB, command_checkbox_clicked),
     wxFrame:connect(FrameB, command_choice_selected),
@@ -302,7 +339,7 @@ createFrameB(ServerB) ->
     % wxErase
     wxFrame:connect(FrameB, erase_background),
 
-    % wxFileDirPiacker
+    % wxFileDirPicker
     % (Not relevant enough to list here.)
 
     % wxFocus
@@ -464,25 +501,6 @@ createFrameB(ServerB) ->
     FrameB.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% Remove the angle brackets from around a PID's string.
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-pidNoBrackets(Pid) when is_pid(Pid) ->
-    % Using separate lines makes debugging easier.
-    L1 = pid_to_list(Pid),
-    L2 = string:replace(L1, "<", "", all),
-    string:replace(L2, ">", "", all).
-
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% Return one of the components of a PID's string.
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-pidComponent(Pid, I) when is_pid(Pid)
-        andalso is_integer(I) andalso I >= 1 andalso I =< 3  ->
-    % Using separate lines makes debugging easier.
-    L1 = pidNoBrackets(Pid),
-    L2 = string:split(L1, ".", all),
-    lists:sublist(L2, I, 1).
-
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Redraw the window from the current display list.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 drawWindowB(DCclient, Dmap) when is_map(Dmap) ->
@@ -603,24 +621,35 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
                     true
                 end,
                 carry_on;
+
             #wxCommand{type=TypeB,
                     cmdString=Cstring, commandInt=Cint, extraLong=Elong} ->
                 % http://erlang.org/doc/man/wxEvtHandler.html#type-wxCommand
+                % http://erlang.org/doc/man/wxCommandEvent.html
+                % http://docs.wxwidgets.org/2.8.12/wx_wxcommandevent.html
                 case TypeB of
                 command_menu_selected ->
                     io:format("menu item selected: "
                         "id=~p, cmdString=~p, commandInt=~p, extraLong=~p~n",
                         [Id, Cstring, Cint, Elong]),
                     case Id of
+                        % http://docs.wxwidgets.org/2.8.12/wx_stdevtid.html
                         ?wxID_EXIT ->
+                            io:format("Exit due to menu item selection", []),
                             exit_normal;
+                        ?MENU_ITEM_1 ->
+                            io:format("Menu item 1 was clicked~n", []),
+                            carry_on;
+                        ?MENU_ITEM_2 ->
+                            io:format("Menu item 2 was clicked~n", []),
+                            carry_on;
                         _Else ->
                             carry_on
                     end;
                 _Else ->
                     io:format("command event ~p: "
-                        "cmdString=~p, commandInt=~p, extraLong=~p~n",
-                        [TypeB, Cstring, Cint, Elong]),
+                        "id=~p, cmdString=~p, commandInt=~p, extraLong=~p~n",
+                        [TypeB, Id, Cstring, Cint, Elong]),
                     carry_on
                 end;
 
