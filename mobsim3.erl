@@ -379,9 +379,28 @@ createFrameB(ServerB) ->
 % Binaries, see http://erlang.org/doc/reference_manual/data_types.html#id65566
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 stringListCat(L) when is_list(L) ->
-    % Using two separate lines here assists diagnosis in case of errors.
+    % Using separate lines makes debugging easier.
     L2 = unicode:characters_to_list(L),
     unicode:characters_to_binary(L2).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Remove the angle brackets from around a PID's string.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pidNoBrackets(Pid) when is_pid(Pid) ->
+    % Using separate lines makes debugging easier.
+    L1 = pid_to_list(Pid),
+    L2 = string:replace(L1, "<", "", all),
+    string:replace(L2, ">", "", all).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Return one of the components of a PID's string.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pidComponent(Pid, I) when is_pid(Pid)
+        andalso is_integer(I) andalso I >= 1 andalso I =< 3  ->
+    % Using separate lines makes debugging easier.
+    L1 = pidNoBrackets(Pid),
+    L2 = string:split(L1, ".", all),
+    lists:sublist(L2, I, 1).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Redraw the window from the current display list.
@@ -401,13 +420,16 @@ drawWindowB(DCclient, Dmap) when is_map(Dmap) ->
     % http://erlang.org/doc/man/maps.html#fold-3
     % http://erlang.org/doc/man/lists.html#foreach-2
     FnD = fun(P, { Xold, Yold, Xnew, Ynew, Nevt }, AccIn) ->
-        PIDstring = pid_to_list(P),
+%        PIDstring = pid_to_list(P),
+%        PIDstring = pidNoBrackets(P),
+        PIDstring = pidComponent(P, 2),
         wxDC:drawLine(DCbuf, {Xold, Yold}, {Xnew, Ynew}),
         wxDC:drawCircle(DCbuf, {Xnew, Ynew}, 5),
         wxDC:drawPoint(DCbuf, {Xnew, Ynew}),
+        % NOTE. Make a rough guess of best string location. Fix this later!
         wxDC:drawText(DCbuf,
-            stringListCat([PIDstring, " ", integer_to_list(Nevt)]),
-            {Xnew, Ynew}),
+            stringListCat([PIDstring, " [", integer_to_list(Nevt), "]"]),
+            {Xnew + 3, Ynew + 3}),
         AccIn
         end,
     maps:fold(FnD, 0, Dmap),
