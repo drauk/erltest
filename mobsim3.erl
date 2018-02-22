@@ -2,6 +2,24 @@
 % This module will simulate a mobile network using wxErlang.
 % Work In Progress!!!
 % Added display lists and double buffering.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Test for this module.
+%
+% On host A, start Erlang, compile the module, and start a server.
+% userA@hostA> erl -sname serverD
+% (serverD@hostA)1> c(mobsim3).
+% (serverD@hostA)2> mobsim3:startMobSimB().
+%
+% On host B, start Erlang, compile the module, and start a server.
+% userB@hostB> erl -sname clientD
+% (clientD@hostB)1> c(mobsim3).
+% (clientD@hostB)2> mobsim3:startMobileBsample1(serverD@hostA).
+%
+% Remember to replace "hostA" with the real host name in startMobileBsample1().
+% It is easiest if hostA and hostB are the same host.
+% If they are different hosts, you must open (almost) all of your TCP ports.
+% If they are the same host, run the two processes in different shell-windows.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 -module(mobsim3).
 
