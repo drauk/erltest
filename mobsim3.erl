@@ -1,4 +1,4 @@
-% src/erlang/mobsim3.erl   2018-2-22   Alan U. Kennington.
+% src/erlang/mobsim3.erl   2018-2-23   Alan U. Kennington.
 % This module will simulate a mobile network using wxErlang.
 % Work In Progress!!!
 % Added display lists and double buffering.
@@ -44,6 +44,7 @@
     startMobileBsample1/1, startMobileBsample2/1]).
 
 % Miscellaneous.
+% -export([getSname/0, handle_event/2]).
 -export([getSname/0]).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -87,6 +88,13 @@ getSname() ->
     end.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% See http://erlang.org/doc/man/inet.html#gethostname-0
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+getHostname() ->
+    {ok, H} = inet:gethostname(),
+    H.
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % On my system, this function has problems with Glib invoking SCIM.
 % The following garbage appears after calls to:
 % wxFrame:new/4. wxFrame:createStatusBar/2
@@ -103,12 +111,14 @@ getSname() ->
 createFrameB(ServerB) ->
     % Get the "sname" flag.
     Sname = getSname(),
+    Hostname = getHostname(),
     TitleText = if
         % See http://erlang.org/doc/reference_manual/expressions.html#id81948
         Sname /= "" ->
-            stringListCat(["Mobile Simulation B: ", Sname]);
+            stringListCat(["Mobile Simulation B: ", Sname, "@", Hostname]);
         true ->
-            "Mobile simulation B"
+%            "Mobile simulation B"
+            stringListCat(["Mobile Simulation B: ", Hostname])
         end,
 
     % Create a frame on the X server.
@@ -157,6 +167,7 @@ createFrameB(ServerB) ->
     MenuItem1 = wxMenuItem:new(
 %        [{parentMenu, Menu1}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1"}]),
         [{id, ?wxID_ANY}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1x"}]),
+%        [{id, 777}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1x"}]),
 
     % Add menu items to Menu 1.
     io:format("Calling wxMenu:append/2.~n", []),
@@ -240,11 +251,40 @@ createFrameB(ServerB) ->
     % wxColourPicker
     wxFrame:connect(FrameB, command_colourpicker_changed),
 
+    % Callback handler for command_menu_selected.
+    % This does actually get called. But I want to exit the loop, not crash out.
+%    CmdMenuSelHand = fun(EventRecord, EventObject) ->
+%        io:format("event record=~p~nevent object=~p~n",
+%            [EventRecord, EventObject])
+%        end,
+%    wxFrame:connect(FrameB, command_menu_selected,
+%        [{callback, CmdMenuSelHand}]),
+
     % wxCommand
-    % (Too big, and not relevant enough to list here.)
-    wxFrame:connect(FrameB, command_menu_selected),
+    % (Partial list of commands only.)
+    wxFrame:connect(FrameB, command_button_clicked),
+    wxFrame:connect(FrameB, command_checkbox_clicked),
+    wxFrame:connect(FrameB, command_choice_selected),
+    wxFrame:connect(FrameB, command_listbox_selected),
+    wxFrame:connect(FrameB, command_listbox_doubleclicked),
+    wxFrame:connect(FrameB, command_text_updated),
     wxFrame:connect(FrameB, command_text_enter),
+    wxFrame:connect(FrameB, command_menu_selected),
+    wxFrame:connect(FrameB, command_slider_updated),
+    wxFrame:connect(FrameB, command_radiobox_selected),
+    wxFrame:connect(FrameB, command_radiobutton_selected),
+    wxFrame:connect(FrameB, command_scrollbar_updated),
+    wxFrame:connect(FrameB, command_vlbox_selected),
+    wxFrame:connect(FrameB, command_combobox_selected),
+    wxFrame:connect(FrameB, command_tool_rclicked),
+    wxFrame:connect(FrameB, command_tool_enter),
+    wxFrame:connect(FrameB, command_checklistbox_toggled),
+    wxFrame:connect(FrameB, command_togglebutton_clicked),
+    wxFrame:connect(FrameB, command_left_click),
+    wxFrame:connect(FrameB, command_left_dclick),
+    wxFrame:connect(FrameB, command_right_click),
     wxFrame:connect(FrameB, command_set_focus),
+    wxFrame:connect(FrameB, command_kill_focus),
     wxFrame:connect(FrameB, command_enter),
 
     % wxContextMenu
@@ -563,6 +603,26 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
                     true
                 end,
                 carry_on;
+            #wxCommand{type=TypeB,
+                    cmdString=Cstring, commandInt=Cint, extraLong=Elong} ->
+                % http://erlang.org/doc/man/wxEvtHandler.html#type-wxCommand
+                case TypeB of
+                command_menu_selected ->
+                    io:format("menu item selected: "
+                        "id=~p, cmdString=~p, commandInt=~p, extraLong=~p~n",
+                        [Id, Cstring, Cint, Elong]),
+                    case Id of
+                        ?wxID_EXIT ->
+                            exit_normal;
+                        _Else ->
+                            carry_on
+                    end;
+                _Else ->
+                    io:format("command event ~p: "
+                        "cmdString=~p, commandInt=~p, extraLong=~p~n",
+                        [TypeB, Cstring, Cint, Elong]),
+                    carry_on
+                end;
 
             #wxIconize{type=TypeB, iconized=Ic} ->
                 case TypeB of
@@ -805,6 +865,10 @@ startWindowB() ->
     io:format("Start wx event handler~n", []),
     handleWindowB(FrameB, DCclient, #{}),
 
+    % Destroy the Brush.
+    io:format("Destroy background Brush~n", []),
+    wxBrush:destroy(BrushBG),
+
     % Destroy the Device Context.
     io:format("Destroy DC (Device Context)~n", []),
     wxClientDC:destroy(DCclient),
@@ -958,3 +1022,11 @@ startMobileBsample2(PIDserver) ->
     startMobileBsample1(PIDserver),
     timer:sleep(Tgap),
     startMobileBsample1(PIDserver).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Function which is exported to the general event handler module.
+% See http://erlang.org/doc/man/gen_event.html#Module:handle_event-2
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% handle_event(#wx{id=Id,
+%     event=#wxCommand{type=Type, cmdString=Cstring}, State=#state{}) ->
+%     .
