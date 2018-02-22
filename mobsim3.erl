@@ -43,6 +43,49 @@
 -export([startMobileB/1, startMobileB/4, procMobSimB/4,
     startMobileBsample1/1, startMobileBsample2/1]).
 
+% Miscellaneous.
+-export([getSname/0]).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Concatenate a list of strings.
+% This should be called string:join/1, but string:* is deprecated.
+% "Warning: string:join/2: deprecated; use lists:join/2 instead"
+% But I don't see how lists:join/2 can accomplish this.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% See http://erlang.org/doc/man/string.html#join-2
+% See http://erlang.org/doc/man/string.html#concat-2
+% See http://erlang.org/doc/man/lists.html#join-2
+% See http://erlang.org/doc/man/unicode.html#characters_to_list-1
+% See http://erlang.org/doc/man/unicode.html#characters_to_binary-1
+% Binaries, see http://erlang.org/doc/reference_manual/data_types.html#id65566
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+stringListCat(L) when is_list(L) ->
+    % Using separate lines makes debugging easier.
+    L2 = unicode:characters_to_list(L),
+    unicode:characters_to_binary(L2).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Get the "sname" flag.
+% Example erl command: "erl -sname serverD".
+% (serverD@hostA)1> init:get_argument(sname).
+% {ok,[["serverD"]]}
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% See http://erlang.org/doc/man/erl.html
+% Return "" (or []) if sname is not set.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+getSname() ->
+    % See http://erlang.org/doc/man/init.html#get_argument-1
+    A = init:get_argument(sname),
+    if
+        A == error ->
+            "";
+        true ->
+            % Focus on the list of values. Could be more than one.
+            {_, L} = A,
+            [[Sname]] = lists:sublist(L, 1, 1),
+            Sname
+    end.
+
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % On my system, this function has problems with Glib invoking SCIM.
 % The following garbage appears after calls to:
@@ -58,13 +101,23 @@
 % However, a window does in fact appear!!!
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 createFrameB(ServerB) ->
+    % Get the "sname" flag.
+    Sname = getSname(),
+    TitleText = if
+        % See http://erlang.org/doc/reference_manual/expressions.html#id81948
+        Sname /= "" ->
+            stringListCat(["Mobile Simulation B: ", Sname]);
+        true ->
+            "Mobile simulation B"
+        end,
+
     % Create a frame on the X server.
     % This call triggers the GLib-GObject-WARNING for plug-in GtkIMContextSCIM.
     io:format("Calling wxFrame:new/4.~n", []),
     % http://erlang.org/doc/man/wxFrame.html
     % http://docs.wxwidgets.org/2.8.12/wx_wxframe.html#wxframewxframe
-    FrameB = wxFrame:new(ServerB, -1,
-        "Mobile simulation B", [{pos, {0, 0}}, {size, {1200, 800}}]),
+    FrameB = wxFrame:new(ServerB, -1, TitleText,
+        [{pos, {0, 0}}, {size, {1200, 800}}]),
     % Carriage return. Get the shell text cursor back to the left of the line.
     io:format("~n", []),
 
@@ -369,24 +422,6 @@ createFrameB(ServerB) ->
 
     % Return the newly created frame.
     FrameB.
-
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% Concatenate a list of strings.
-% This should be called string:join/1, but string:* is deprecated.
-% "Warning: string:join/2: deprecated; use lists:join/2 instead"
-% But I don't see how lists:join/2 can accomplish this.
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% See http://erlang.org/doc/man/string.html#join-2
-% See http://erlang.org/doc/man/string.html#concat-2
-% See http://erlang.org/doc/man/lists.html#join-2
-% See http://erlang.org/doc/man/unicode.html#characters_to_list-1
-% See http://erlang.org/doc/man/unicode.html#characters_to_binary-1
-% Binaries, see http://erlang.org/doc/reference_manual/data_types.html#id65566
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-stringListCat(L) when is_list(L) ->
-    % Using separate lines makes debugging easier.
-    L2 = unicode:characters_to_list(L),
-    unicode:characters_to_binary(L2).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Remove the angle brackets from around a PID's string.
