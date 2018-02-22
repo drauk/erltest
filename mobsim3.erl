@@ -1,4 +1,4 @@
-% src/erlang/mobsim3.erl   2018-2-21   Alan U. Kennington.
+% src/erlang/mobsim3.erl   2018-2-22   Alan U. Kennington.
 % This module will simulate a mobile network using wxErlang.
 % Work In Progress!!! (Now introducing display lists and double buffering.)
 % For wx: http://erlang.org/doc/apps/wx/index.html
@@ -341,24 +341,22 @@ createFrameB(ServerB) ->
 
     % Return the newly created frame.
     FrameB.
-%    WindowB.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% Create a window as a child object of a given frame.
+% Concatenate a list of strings.
+% This should be called string:join/1, but string:* is deprecated.
+% "Warning: string:join/2: deprecated; use lists:join/2 instead"
+% But I don't see how lists:join/2 can accomplish this.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-createWindowB(FrameB) ->
-    % Create a window on the X server.
-    % This call triggers the GLib-GObject-WARNING for plug-in GtkIMContextSCIM.
-    io:format("Calling wxWindow:new/2.~n", []),
-
-    % Carriage return. Get the shell text cursor back to the left of the line.
-%    io:format("~n", []),
-
-    % Create a window within the frame.
-    WindowB = wxWindow:new(FrameB, ?wxID_ANY),
-    wxWindow:setBackgroundColour(WindowB, ?wxWHITE),
-
-    WindowB.
+% See http://erlang.org/doc/man/string.html#join-2
+% See http://erlang.org/doc/man/string.html#concat-2
+% See http://erlang.org/doc/man/lists.html#join-2
+% See http://erlang.org/doc/man/unicode.html#characters_to_list-1
+% See http://erlang.org/doc/man/unicode.html#characters_to_binary-1
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+stringListCat(L) when is_list(L) ->
+    L2 = unicode:characters_to_list(L),
+    unicode:characters_to_list(L2).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Event-handling loop for FrameB window.
@@ -409,7 +407,6 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
                     io:format("Process ~p closing window id=~p, obj=~p~n",
                         [self(), Id, Obj]),
                     wxFrame:setStatusText(FrameB, "Closing now...", []),
-%                    timer:sleep(2000),
                     wxWindow:destroy(FrameB),
 %                    exit(normal);
                     exit_normal;
@@ -418,7 +415,6 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
                     io:format("Process ~p ending session id=~p, obj=~p~n",
                         [self(), Id, Obj]),
                     wxFrame:setStatusText(FrameB, "Ending session now...", []),
-%                    timer:sleep(2000),
                     wxWindow:destroy(FrameB),
 %                    exit(normal);
                     exit_normal;
@@ -596,7 +592,7 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
             % Status text at the bottom of the window.
             % See http://erlang.org/doc/man/wxFrame.html#setStatusText-2
             ok = wxFrame:setStatusText(FrameB,
-                string:join(["Status: N mobiles = ", StrNmobs], ""), []),
+                stringListCat(["Status: N mobiles = ", StrNmobs]), []),
 
             io:format("~p new display list: ~p~n", [self(), DmapNew]),
 
@@ -622,7 +618,7 @@ handleWindowB(FrameB, DCclient, Dmap) when is_map(Dmap) ->
             % Status text at the bottom of the window.
             % See http://erlang.org/doc/man/wxFrame.html#setStatusText-2
             ok = wxFrame:setStatusText(FrameB,
-                string:join(["Status: N mobiles = ", StrNmobs], ""), []),
+                stringListCat(["Status: N mobiles = ", StrNmobs]), []),
 
             io:format("~p new display list: ~p~n", [self(), DmapNew]),
 
@@ -696,10 +692,6 @@ startWindowB() ->
     % wx:batch/2 apparently returns the return value from the batched function.
     FrameB = wx:batch(fun() -> createFrameB(ServerB) end),
 
-    % Should I be batching this?
-%    WindowB = wx:batch(fun() -> createWindowB(FrameB) end),
-%    WindowB = createWindowB(FrameB),
-
     % Show the frame.
     io:format("Show wx frame~n", []),
     wxWindow:show(FrameB),
@@ -708,20 +700,6 @@ startWindowB() ->
     % http://erlang.org/doc/man/wxClientDC.html
     % http://docs.wxwidgets.org/3.0/classwx_client_d_c.html
     DCclient = wxClientDC:new(FrameB),
-%    DCclient = wxClientDC:new(WindowB),
-
-    % See http://erlang.org/doc/man/wxBufferedPaintDC.html
-    % http://docs.wxwidgets.org/3.0/classwx_buffered_paint_d_c.html
-    % This doesn't work. Nnothing gets drawn. Back to the drawing board!
-%    DCclient = wxBufferedPaintDC:new(FrameB),
-
-    % Create a DC (Device Context).
-    % http://erlang.org/doc/man/wxPaintDC.html
-    % http://docs.wxwidgets.org/3.0/classwx_paint_d_c.html
-    % This works just like wxClientDC:new(FrameB). Receives no wxPaint events!
-    % This is only supposed to be used within the paint event handler.
-    % But this event never arrives!
-%    DCclient = wxPaintDC:new(FrameB),
 
     BrushBG = wxBrush:new({255, 255, 255}),
     wxClientDC:setBackground(DCclient, BrushBG),
@@ -729,9 +707,7 @@ startWindowB() ->
 
     % Go into a loop.
     io:format("Start wx event handler~n", []),
-%    handleWindowB(FrameB, DCclient, []),
     handleWindowB(FrameB, DCclient, #{}),
-%    handleWindowB(WindowB, DCclient, #{}),
 
     % Destroy the Device Context.
     io:format("Destroy DC (Device Context)~n", []),
