@@ -24,6 +24,10 @@
 %
 % (clientD@hostB)3> mobsim3:startMobileB(serverD@hostA).
 %
+% If you want to see some chaos, try this.
+%
+% (clientD@hostB)4> mobsim3:startMobileBsample2(serverD@hostA).
+%
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 -module(mobsim3).
@@ -36,7 +40,8 @@
 -export([startMobSimB/0, startWindowB/0]).
 
 % Client process.
--export([startMobileB/1, startMobileB/4, procMobSimB/4, startMobileBsample1/1]).
+-export([startMobileB/1, startMobileB/4, procMobSimB/4,
+    startMobileBsample1/1, startMobileBsample2/1]).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % On my system, this function has problems with Glib invoking SCIM.
@@ -899,3 +904,16 @@ startMobileBsample1(PIDserver) ->
     startMobileB(PIDserver, 8, 1450, {950, 250, -10, 30}),
     startMobileB(PIDserver, 6, 3650, {800, 650, 30, -40}),
     startMobileB(PIDserver, 5, 3350, {1100, 450, -30, 40}).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Some mobile device processes, just for 4 times as much amusement.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+startMobileBsample2(PIDserver) ->
+    Tgap = 4000,
+    startMobileBsample1(PIDserver),
+    timer:sleep(Tgap),
+    startMobileBsample1(PIDserver),
+    timer:sleep(Tgap),
+    startMobileBsample1(PIDserver),
+    timer:sleep(Tgap),
+    startMobileBsample1(PIDserver).
