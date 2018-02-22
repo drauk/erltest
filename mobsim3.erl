@@ -20,6 +20,11 @@
 % If they are different hosts, you must open (almost) all of your TCP ports.
 % If they are the same host, run the two processes in different shell-windows.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% For a simpler client process, try this.
+%
+% (clientD@hostB)3> mobsim3:startMobileB(serverD@hostA).
+%
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 -module(mobsim3).
 
@@ -844,28 +849,31 @@ startMobSimB() ->
 % ....
 %
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-startMobileB(PIDserver) ->
-    spawn(mobsim3, procMobSimB, [PIDserver, 5, 2500, {10, 20, 30, 40}]).
-
 startMobileB(PIDserver, Ntimes, Tsleep, {X, Y, U, V}) ->
     spawn(mobsim3, procMobSimB, [PIDserver, Ntimes, Tsleep, {X, Y, U, V}]).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% Some processes just for amusement.
+% A single mobile device process, just for amusement.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+startMobileB(PIDserver) ->
+    startMobileB(PIDserver, 10, 2000, {10, 20, 30, 40}).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Some mobile device processes, just for amusement.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobileBsample1(PIDserver) ->
-    spawn(mobsim3, procMobSimB, [PIDserver, 8, 1000, {550, 50, -10, 30}]),
-    spawn(mobsim3, procMobSimB, [PIDserver, 6, 1500, {600, 50, -10, 30}]),
-    spawn(mobsim3, procMobSimB, [PIDserver, 4, 2000, {100, 350, 30, -40}]),
-    spawn(mobsim3, procMobSimB, [PIDserver, 5, 2500, {150, 50, 40, 30}]),
-    spawn(mobsim3, procMobSimB, [PIDserver, 8, 1250, {450, 50, -10, 30}]),
-    spawn(mobsim3, procMobSimB, [PIDserver, 3, 3500, {100, 250, 30, -40}]),
-    spawn(mobsim3, procMobSimB, [PIDserver, 5, 3000, {400, 200, -30, 40}]),
+    startMobileB(PIDserver, 8, 1000, {550, 50, -10, 30}),
+    startMobileB(PIDserver, 6, 1500, {600, 50, -10, 30}),
+    startMobileB(PIDserver, 4, 2000, {100, 350, 30, -40}),
+    startMobileB(PIDserver, 5, 2500, {150, 50, 40, 30}),
+    startMobileB(PIDserver, 8, 1250, {450, 50, -10, 30}),
+    startMobileB(PIDserver, 3, 3500, {100, 250, 30, -40}),
+    startMobileB(PIDserver, 5, 3000, {400, 200, -30, 40}),
 
-    spawn(mobsim3, procMobSimB, [PIDserver, 8, 1150, {750, 50, -10, 30}]),
-    spawn(mobsim3, procMobSimB, [PIDserver, 6, 1600, {600, 550, -10, 30}]),
-    spawn(mobsim3, procMobSimB, [PIDserver, 4, 2300, {600, 350, 30, -40}]),
-    spawn(mobsim3, procMobSimB, [PIDserver, 5, 2800, {150, 650, 40, 30}]),
-    spawn(mobsim3, procMobSimB, [PIDserver, 8, 1450, {950, 250, -10, 30}]),
-    spawn(mobsim3, procMobSimB, [PIDserver, 6, 3650, {800, 650, 30, -40}]),
-    spawn(mobsim3, procMobSimB, [PIDserver, 5, 3350, {1100, 450, -30, 40}]).
+    startMobileB(PIDserver, 8, 1150, {750, 50, -10, 30}),
+    startMobileB(PIDserver, 6, 1600, {600, 550, -10, 30}),
+    startMobileB(PIDserver, 4, 2300, {600, 350, 30, -40}),
+    startMobileB(PIDserver, 5, 2800, {150, 650, 40, 30}),
+    startMobileB(PIDserver, 8, 1450, {950, 250, -10, 30}),
+    startMobileB(PIDserver, 6, 3650, {800, 650, 30, -40}),
+    startMobileB(PIDserver, 5, 3350, {1100, 450, -30, 40}).
