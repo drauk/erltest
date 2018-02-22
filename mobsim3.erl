@@ -411,15 +411,18 @@ pidComponent(Pid, I) when is_pid(Pid)
 % Redraw the window from the current display list.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 drawWindowB(DCclient, Dmap) when is_map(Dmap) ->
-    % Create a white brush.
-    BrushBG = wxBrush:new({255, 255, 255}),
-
     % See http://erlang.org/doc/man/wxBufferedDC.html
     % http://docs.wxwidgets.org/3.0/classwx_buffered_d_c.html
     DCbuf = wxBufferedDC:new(DCclient),
 
+    % Create a white brush.
+    BrushBG = wxBrush:new({255, 255, 255}),
+    BrushCircle = wxBrush:new({128, 255, 128}),
+
     wxBufferedDC:setBackground(DCbuf, BrushBG),
     wxBufferedDC:clear(DCbuf),
+
+    wxBufferedDC:setBrush(DCbuf, BrushCircle),
 
     % I really want maps:foreach/2 here, but it doesn't exist.
     % http://erlang.org/doc/man/maps.html#fold-3
@@ -438,6 +441,9 @@ drawWindowB(DCclient, Dmap) when is_map(Dmap) ->
         AccIn
         end,
     maps:fold(FnD, 0, Dmap),
+
+    wxBrush:destroy(BrushCircle),
+    wxBrush:destroy(BrushBG),
 
     % Destroying the BufferedDC transfers the buffer to the ClientDC.
     wxBufferedDC:destroy(DCbuf),
