@@ -50,9 +50,34 @@
 % Some constants for menu items.
 % Must avoid range 5000 to 600, and probably below about 120 also.
 % There should be a systematic way to allocate these ID values.
--define(MENU_ITEM_R, 1001).
--define(MENU_ITEM_G, 1002).
--define(MENU_ITEM_B, 1003).
+-define(MENU_ITEM_1, 1001).
+-define(MENU_ITEM_2, 1002).
+-define(MENU_ITEM_3, 1003).
+
+-define(MENU_ITEM_R, 1010).
+-define(MENU_ITEM_G, 1011).
+-define(MENU_ITEM_B, 1012).
+
+-define(MENU_ITEM_CIRCLE, 1020).
+-define(MENU_ITEM_SQUARE, 1021).
+-define(MENU_ITEM_HEXAGON, 1022).
+-define(MENU_ITEM_X, 1023).
+
+-define(MENU_ITEM_RAD1, 1030).
+-define(MENU_ITEM_RAD2, 1031).
+-define(MENU_ITEM_RAD3, 1032).
+-define(MENU_ITEM_RAD4, 1033).
+
+% Some colours.
+-define(NODE_COLOUR_R, {255, 128, 128}).
+-define(NODE_COLOUR_G, {128, 255, 128}).
+-define(NODE_COLOUR_B, {128, 128, 255}).
+
+% Some radius options
+-define(NODE_RAD1, 5).
+-define(NODE_RAD2, 10).
+-define(NODE_RAD3, 20).
+-define(NODE_RAD4, 40).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Concatenate a list of strings.
@@ -182,58 +207,45 @@ createFrameB(ServerB) ->
     io:format("Calling wxMenu:new/1.~n", []),
     Menu1 = wxMenu:new([]),
 
-    % Add Menu 1 to the MenuBar.
+    % Add Menu 2 to the MenuBar.
     io:format("Calling wxMenuBar:append/3.~n", []),
     wxMenuBar:append(MenuBar1, Menu1, "Menu 1"),
 
-    % Create a MenuItem.
+    % Create some menu items.
     % http://erlang.org/doc/man/wxMenuItem.html
     % This MenuItem becomes a Separator if "id" is not set!
     io:format("Calling wxMenuItem:new/1.~n", []),
-    MenuItemR = wxMenuItem:new(
-%        [{id, ?MENU_ITEM_R}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item R"}]),
-        [{id, ?MENU_ITEM_R}, {kind, ?wxITEM_RADIO}, {text, "Menu Item R"}]),
+    MenuItem1 = wxMenuItem:new(
+        [{id, ?MENU_ITEM_1}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1"}]),
     io:format("Calling wxMenuItem:new/1.~n", []),
-    MenuItemG = wxMenuItem:new(
-%        [{id, ?MENU_ITEM_G}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item G"}]),
-        [{id, ?MENU_ITEM_G}, {kind, ?wxITEM_RADIO}, {text, "Menu Item G"}]),
+    MenuItem2 = wxMenuItem:new(
+        [{id, ?MENU_ITEM_2}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 2"}]),
     io:format("Calling wxMenuItem:new/1.~n", []),
-    MenuItemB = wxMenuItem:new(
-%        [{id, ?MENU_ITEM_B}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item B"}]),
-        [{id, ?MENU_ITEM_B}, {kind, ?wxITEM_RADIO}, {text, "Menu Item B"}]),
+    MenuItem3 = wxMenuItem:new(
+        [{id, ?MENU_ITEM_3}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 3"}]),
 
-    % This has no effect here.
-%    io:format("Calling wxMenuItem:check/2.~n", []),
-%    wxMenuItem:check(MenuItemG, [{check, true}]),
-
-    % Add menu items to Menu 1.
+    % Add menu items to Menu 2.
     io:format("Calling wxMenu:append/2.~n", []),
-    wxMenu:append(Menu1, MenuItemR),
+    wxMenu:append(Menu1, MenuItem1),
 
     io:format("Calling wxMenu:append/2.~n", []),
-    wxMenu:append(Menu1, MenuItemG),
+    wxMenu:append(Menu1, MenuItem2),
     io:format("Calling wxMenu:append/2.~n", []),
-    wxMenu:append(Menu1, MenuItemB),
-
-    % Checking the radio button does have an effect after it is appended.
-    io:format("Calling wxMenuItem:check/2.~n", []),
-    wxMenuItem:check(MenuItemG, [{check, true}]),
+    wxMenu:append(Menu1, MenuItem3),
 
     % This does override the wxMenuItem:new/2 setting for "text".
     io:format("Calling wxMenuItem:setText/2.~n", []),
-    wxMenuItem:setText(MenuItemR, "Nodes are red"),
-    io:format("Calling wxMenuItem:enable/1.~n", []),
-    wxMenuItem:enable(MenuItemR, [{enable, true}]),
+    wxMenuItem:setText(MenuItem1, "Menu Item 1"),
 
     io:format("Calling wxMenuItem:setText/2.~n", []),
-    wxMenuItem:setText(MenuItemG, "Nodes are green"),
+    wxMenuItem:setText(MenuItem2, "Menu Item 2"),
     io:format("Calling wxMenuItem:enable/1.~n", []),
-    wxMenuItem:enable(MenuItemG, [{enable, true}]),
+    wxMenuItem:enable(MenuItem2, [{enable, true}]),
 
     io:format("Calling wxMenuItem:setText/2.~n", []),
-    wxMenuItem:setText(MenuItemB, "Nodes are blue"),
+    wxMenuItem:setText(MenuItem3, "Menu Item 3"),
     io:format("Calling wxMenuItem:enable/1.~n", []),
-    wxMenuItem:enable(MenuItemB, [{enable, true}]),
+    wxMenuItem:enable(MenuItem3, [{enable, true}]),
 
     % Add Quit item to Menu 1.
     io:format("Calling wxMenu:appendSeparator/1.~n", []),
@@ -243,12 +255,111 @@ createFrameB(ServerB) ->
     % Avoid the range 5000 to 6000.
     wxMenu:append(Menu1, ?wxID_EXIT, "&Quit"),
 
-    io:format("Calling wxMenuBar:enable/1.~n", []),
-    wxMenuBar:enable(MenuBar1),
+    % - - - - - - - - - - - - - - - - - -
+    % Create Menu 2.
+    % http://erlang.org/doc/man/wxMenu.html
+    io:format("Calling wxMenu:new/1.~n", []),
+    Menu2 = wxMenu:new([]),
+
+    % Add Menu 1 to the MenuBar.
+    io:format("Calling wxMenuBar:append/3.~n", []),
+    wxMenuBar:append(MenuBar1, Menu2, "Node colour"),
+
+    % Create a MenuItem.
+    % http://erlang.org/doc/man/wxMenuItem.html
+    % This MenuItem becomes a Separator if "id" is not set!
+    io:format("Calling wxMenuItem:new/1.~n", []),
+    MenuItemR = wxMenuItem:new(
+        [{id, ?MENU_ITEM_R}, {kind, ?wxITEM_RADIO}, {text, "Menu Item R"}]),
+    io:format("Calling wxMenuItem:new/1.~n", []),
+    MenuItemG = wxMenuItem:new(
+        [{id, ?MENU_ITEM_G}, {kind, ?wxITEM_RADIO}, {text, "Menu Item G"}]),
+    io:format("Calling wxMenuItem:new/1.~n", []),
+    MenuItemB = wxMenuItem:new(
+        [{id, ?MENU_ITEM_B}, {kind, ?wxITEM_RADIO}, {text, "Menu Item B"}]),
+
+    % This has no effect here.
+%    io:format("Calling wxMenuItem:check/2.~n", []),
+%    wxMenuItem:check(MenuItemG, [{check, true}]),
+
+    % Add menu items to Menu 1.
+    io:format("Calling wxMenu:append/2.~n", []),
+    wxMenu:append(Menu2, MenuItemR),
+    io:format("Calling wxMenu:append/2.~n", []),
+    wxMenu:append(Menu2, MenuItemG),
+    io:format("Calling wxMenu:append/2.~n", []),
+    wxMenu:append(Menu2, MenuItemB),
+
+    % Checking the radio button does have an effect after it is appended.
+    io:format("Calling wxMenuItem:check/2.~n", []),
+    wxMenuItem:check(MenuItemG, [{check, true}]),
+
+    % This does override the wxMenuItem:new/2 setting for "text".
+    io:format("Calling wxMenuItem:setText/2.~n", []),
+    wxMenuItem:setText(MenuItemR, "Red"),
+
+    io:format("Calling wxMenuItem:setText/2.~n", []),
+    wxMenuItem:setText(MenuItemG, "Green"),
+
+    io:format("Calling wxMenuItem:setText/2.~n", []),
+    wxMenuItem:setText(MenuItemB, "Blue"),
+
+    % - - - - - - - - - - - - - - - - - -
+    % Create Menu 3.
+    % http://erlang.org/doc/man/wxMenu.html
+    Menu3 = wxMenu:new([]),
+    wxMenuBar:append(MenuBar1, Menu3, "Node shape"),
+
+    % Create menu items.
+    % http://erlang.org/doc/man/wxMenuItem.html
+    MenuItemCircle = wxMenuItem:new(
+        [{id, ?MENU_ITEM_CIRCLE}, {kind, ?wxITEM_RADIO}, {text, "Circle"}]),
+    MenuItemSquare = wxMenuItem:new(
+        [{id, ?MENU_ITEM_SQUARE}, {kind, ?wxITEM_RADIO}, {text, "Square"}]),
+    MenuItemHexagon = wxMenuItem:new(
+        [{id, ?MENU_ITEM_HEXAGON}, {kind, ?wxITEM_RADIO}, {text, "Hexagon"}]),
+    MenuItemX = wxMenuItem:new(
+        [{id, ?MENU_ITEM_X}, {kind, ?wxITEM_RADIO}, {text, "X"}]),
+
+    % Add items to the menu.
+    wxMenu:append(Menu3, MenuItemCircle),
+    wxMenu:append(Menu3, MenuItemSquare),
+    wxMenu:append(Menu3, MenuItemHexagon),
+    wxMenu:append(Menu3, MenuItemX),
+
+    % Checking the radio button does have an effect after it is appended.
+    wxMenuItem:check(MenuItemCircle, [{check, true}]),
+
+    % - - - - - - - - - - - - - - - - - -
+    % Create Menu 4.
+    % http://erlang.org/doc/man/wxMenu.html
+    Menu4 = wxMenu:new([]),
+    wxMenuBar:append(MenuBar1, Menu4, "Node radius"),
+
+    % Create menu items.
+    % http://erlang.org/doc/man/wxMenuItem.html
+    % NOTE: Replace 5, 10, 20, 40 with ?NODE_RAD1, 2, 3, 4.
+    MenuItemRad1 = wxMenuItem:new([{id, ?MENU_ITEM_RAD1},
+        {kind, ?wxITEM_RADIO}, {text, "5 pixels"}]),
+    MenuItemRad2 = wxMenuItem:new([{id, ?MENU_ITEM_RAD2},
+        {kind, ?wxITEM_RADIO}, {text, "10 pixels"}]),
+    MenuItemRad3 = wxMenuItem:new([{id, ?MENU_ITEM_RAD3},
+        {kind, ?wxITEM_RADIO}, {text, "20 pixels"}]),
+    MenuItemRad4 = wxMenuItem:new([{id, ?MENU_ITEM_RAD4},
+        {kind, ?wxITEM_RADIO}, {text, "40 pixels"}]),
+
+    % Add items to the menu.
+    wxMenu:append(Menu4, MenuItemRad1),
+    wxMenu:append(Menu4, MenuItemRad2),
+    wxMenu:append(Menu4, MenuItemRad3),
+    wxMenu:append(Menu4, MenuItemRad4),
+
+    % Checking the radio button does have an effect after it is appended.
+    wxMenuItem:check(MenuItemRad1, [{check, true}]),
 
     % - - - - - - - - - - - - - - - - - -
     % Add the MenuBar to the Frame.
-    io:format("Calling wxMenuBar:enable/1.~n", []),
+    io:format("Calling wxFrame:setMenuBar/2.~n", []),
     wxFrame:setMenuBar(FrameB, MenuBar1),
 
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -530,8 +641,14 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
 
     % Create the brush for the nodes, with default colour if not found.
     % http://erlang.org/doc/man/maps.html#get-3
-    ColNode = maps:get(colNode, Vars, {128, 255, 128}),
+    ColNode = maps:get(nodeColour, Vars, ?NODE_COLOUR_G),
     BrushCircle = wxBrush:new(ColNode),
+
+    % Node shape.
+    NodeShape = maps:get(nodeShape, Vars, nodeShapeCircle),
+
+    % Node radius.
+    NodeRadius = maps:get(nodeRadius, Vars, ?NODE_RAD1),
 
     wxBufferedDC:setBackground(DCbuf, BrushBG),
     wxBufferedDC:clear(DCbuf),
@@ -546,8 +663,39 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
 %        PIDstring = pidNoBrackets(P),
         PIDstring = pidComponent(P, 2),
         wxDC:drawLine(DCbuf, {Xold, Yold}, {Xnew, Ynew}),
-        wxDC:drawCircle(DCbuf, {Xnew, Ynew}, 5),
-        wxDC:drawPoint(DCbuf, {Xnew, Ynew}),
+        case NodeShape of
+            nodeShapeCircle ->
+                % http://erlang.org/doc/man/wxDC.html#drawCircle-3
+                wxDC:drawCircle(DCbuf, {Xnew, Ynew}, NodeRadius),
+                wxDC:drawPoint(DCbuf, {Xnew, Ynew});
+            nodeShapeSquare ->
+                % http://erlang.org/doc/man/wxDC.html#drawRectangle-2
+                wxDC:drawRectangle(DCbuf, {Xnew - NodeRadius, Ynew - NodeRadius,
+                    2 * NodeRadius, 2 * NodeRadius}),
+                wxDC:drawPoint(DCbuf, {Xnew, Ynew});
+            nodeShapeHexagon ->
+                % http://erlang.org/doc/man/wxDC.html#drawPolygon-2
+                Cos60 = 0.5,
+                Sin60 = math:sqrt(0.75),
+                % Note: math:floor() returns float, floor() returns integer.
+                Rcos60 = floor(NodeRadius * Cos60 + 0.5),
+                Rsin60 = floor(NodeRadius * Sin60 + 0.5),
+                Pts = [{Xnew - NodeRadius, Ynew},
+                   {Xnew - Rcos60, Ynew + Rsin60},
+                   {Xnew + Rcos60, Ynew + Rsin60},
+                   {Xnew + NodeRadius, Ynew},
+                   {Xnew + Rcos60, Ynew - Rsin60},
+                   {Xnew - Rcos60, Ynew - Rsin60}],
+                wxDC:drawPolygon(DCbuf, Pts),
+                wxDC:drawPoint(DCbuf, {Xnew, Ynew});
+            nodeShapeX ->
+                wxDC:drawLine(DCbuf, {Xnew - NodeRadius, Ynew + NodeRadius},
+                    {Xnew + NodeRadius, Ynew - NodeRadius}),
+                wxDC:drawLine(DCbuf, {Xnew - NodeRadius, Ynew - NodeRadius},
+                    {Xnew + NodeRadius, Ynew + NodeRadius});
+            true ->
+                ok
+            end,
         % NOTE. Make a rough guess of best string location. Fix this later!
         wxDC:drawText(DCbuf,
             stringListCat([PIDstring, " [", integer_to_list(Nevt), "]"]),
@@ -667,7 +815,8 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                             % Change the node colour.
                             % http://erlang.org/doc/man/maps.html#put-3
                             % Yes, I realise the VarsNew is superfluous!
-                            VarsNew = maps:put(colNode, {255, 128, 128}, Vars),
+                            VarsNew = maps:put(nodeColour,
+                                ?NODE_COLOUR_R, Vars),
                             VarsNew;
 %                            carry_on;
                         ?MENU_ITEM_G ->
@@ -675,7 +824,8 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                             % Change the node colour.
                             % http://erlang.org/doc/man/maps.html#put-3
                             % Yes, I realise the VarsNew is superfluous!
-                            VarsNew = maps:put(colNode, {128, 255, 128}, Vars),
+                            VarsNew = maps:put(nodeColour,
+                                ?NODE_COLOUR_G, Vars),
                             VarsNew;
 %                            carry_on;
                         ?MENU_ITEM_B ->
@@ -683,9 +833,33 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                             % Change the node colour.
                             % http://erlang.org/doc/man/maps.html#put-3
                             % Yes, I realise the VarsNew is superfluous!
-                            VarsNew = maps:put(colNode, {128, 128, 255}, Vars),
+                            VarsNew = maps:put(nodeColour,
+                                ?NODE_COLOUR_B, Vars),
                             VarsNew;
 %                            carry_on;
+
+                        ?MENU_ITEM_CIRCLE ->
+                            io:format("Menu item Circle was clicked~n", []),
+                            maps:put(nodeShape, nodeShapeCircle, Vars);
+                        ?MENU_ITEM_SQUARE ->
+                            io:format("Menu item Square was clicked~n", []),
+                            maps:put(nodeShape, nodeShapeSquare, Vars);
+                        ?MENU_ITEM_HEXAGON ->
+                            io:format("Menu item Hexagon was clicked~n", []),
+                            maps:put(nodeShape, nodeShapeHexagon, Vars);
+                        ?MENU_ITEM_X ->
+                            io:format("Menu item X was clicked~n", []),
+                            maps:put(nodeShape, nodeShapeX, Vars);
+
+                        ?MENU_ITEM_RAD1 ->
+                            maps:put(nodeRadius, ?NODE_RAD1, Vars);
+                        ?MENU_ITEM_RAD2 ->
+                            maps:put(nodeRadius, ?NODE_RAD2, Vars);
+                        ?MENU_ITEM_RAD3 ->
+                            maps:put(nodeRadius, ?NODE_RAD3, Vars);
+                        ?MENU_ITEM_RAD4 ->
+                            maps:put(nodeRadius, ?NODE_RAD4, Vars);
+
                         _Else ->
                             carry_on
                     end;
