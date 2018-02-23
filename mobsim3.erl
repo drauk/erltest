@@ -47,37 +47,53 @@
 % -export([getSname/0, handle_event/2]).
 -export([getSname/0]).
 
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Some constants for menu items.
-% Must avoid range 5000 to 600, and probably below about 120 also.
+% Must avoid range 5000 to 6000, and probably below about 120 also.
 % There should be a systematic way to allocate these ID values.
+% Place-holders for "future growth"!!
 -define(MENU_ITEM_1, 1001).
 -define(MENU_ITEM_2, 1002).
 -define(MENU_ITEM_3, 1003).
 
+% - - - - - - - - - - - - - - - - - - -
+% Node colours.
 -define(MENU_ITEM_R, 1010).
--define(MENU_ITEM_G, 1011).
+-define(MENU_ITEM_G, 1011).             % Default.
 -define(MENU_ITEM_B, 1012).
-
--define(MENU_ITEM_CIRCLE, 1020).
--define(MENU_ITEM_SQUARE, 1021).
--define(MENU_ITEM_HEXAGON, 1022).
--define(MENU_ITEM_X, 1023).
-
--define(MENU_ITEM_RAD1, 1030).
--define(MENU_ITEM_RAD2, 1031).
--define(MENU_ITEM_RAD3, 1032).
--define(MENU_ITEM_RAD4, 1033).
 
 % Some colours.
 -define(NODE_COLOUR_R, {255, 128, 128}).
 -define(NODE_COLOUR_G, {128, 255, 128}).
 -define(NODE_COLOUR_B, {128, 128, 255}).
 
+% - - - - - - - - - - - - - - - - - - -
+% Node shapes.
+-define(MENU_ITEM_CIRCLE, 1020).        % Default.
+-define(MENU_ITEM_SQUARE, 1021).
+-define(MENU_ITEM_HEXAGON, 1022).
+-define(MENU_ITEM_X, 1023).
+
+% - - - - - - - - - - - - - - - - - - -
+% Node sizes.
+-define(MENU_ITEM_RAD1, 1030).          % Default.
+-define(MENU_ITEM_RAD2, 1031).
+-define(MENU_ITEM_RAD3, 1032).
+-define(MENU_ITEM_RAD4, 1033).
+
 % Some radius options
 -define(NODE_RAD1, 5).
 -define(NODE_RAD2, 10).
 -define(NODE_RAD3, 20).
 -define(NODE_RAD4, 40).
+
+% - - - - - - - - - - - - - - - - - - -
+% Trace options.
+-define(MENU_ITEM_TRACE_DMAP, 1040).    % Default is off.
+-define(TRACE_DMAP_DEFT, false).
+
+-define(MENU_ITEM_TRACE_MOUSE, 1041).   % Default is off.
+-define(TRACE_MOUSE_DEFT, false).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Concatenate a list of strings.
@@ -96,6 +112,25 @@ stringListCat(L) when is_list(L) ->
     % Using separate lines makes debugging easier.
     L2 = unicode:characters_to_list(L),
     unicode:characters_to_binary(L2).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Convert integer 0 or 1 to boolean false or true.
+% For other values, return the default.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int_to_boolean(Int, Default)
+        when is_integer(Int) andalso is_boolean(Default) ->
+    % Erlang should have a test like: "Tracemap = (Cint /= 0)".
+    case Int of
+        0 ->
+            false;
+        1 ->
+            true;
+        _ ->
+            Default
+    end.
+
+int_to_boolean(Int) when is_integer(Int) ->
+    int_to_boolean(Int, false).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Get the "sname" flag.
@@ -204,11 +239,9 @@ createFrameB(ServerB) ->
     % - - - - - - - - - - - - - - - - - -
     % Create Menu 1.
     % http://erlang.org/doc/man/wxMenu.html
-    io:format("Calling wxMenu:new/1.~n", []),
     Menu1 = wxMenu:new([]),
 
     % Add Menu 2 to the MenuBar.
-    io:format("Calling wxMenuBar:append/3.~n", []),
     wxMenuBar:append(MenuBar1, Menu1, "Menu 1"),
 
     % Create some menu items.
@@ -224,28 +257,17 @@ createFrameB(ServerB) ->
     MenuItem3 = wxMenuItem:new(
         [{id, ?MENU_ITEM_3}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 3"}]),
 
-    % Add menu items to Menu 2.
-    io:format("Calling wxMenu:append/2.~n", []),
+    % Add menu items to menu.
     wxMenu:append(Menu1, MenuItem1),
-
-    io:format("Calling wxMenu:append/2.~n", []),
     wxMenu:append(Menu1, MenuItem2),
-    io:format("Calling wxMenu:append/2.~n", []),
     wxMenu:append(Menu1, MenuItem3),
 
     % This does override the wxMenuItem:new/2 setting for "text".
-    io:format("Calling wxMenuItem:setText/2.~n", []),
     wxMenuItem:setText(MenuItem1, "Menu Item 1"),
-
-    io:format("Calling wxMenuItem:setText/2.~n", []),
     wxMenuItem:setText(MenuItem2, "Menu Item 2"),
-    io:format("Calling wxMenuItem:enable/1.~n", []),
-    wxMenuItem:enable(MenuItem2, [{enable, true}]),
-
-    io:format("Calling wxMenuItem:setText/2.~n", []),
+    % Superfluous at this point.
+%    wxMenuItem:enable(MenuItem2, [{enable, true}]),
     wxMenuItem:setText(MenuItem3, "Menu Item 3"),
-    io:format("Calling wxMenuItem:enable/1.~n", []),
-    wxMenuItem:enable(MenuItem3, [{enable, true}]),
 
     % Add Quit item to Menu 1.
     io:format("Calling wxMenu:appendSeparator/1.~n", []),
@@ -258,11 +280,7 @@ createFrameB(ServerB) ->
     % - - - - - - - - - - - - - - - - - -
     % Create Menu 2.
     % http://erlang.org/doc/man/wxMenu.html
-    io:format("Calling wxMenu:new/1.~n", []),
     Menu2 = wxMenu:new([]),
-
-    % Add Menu 1 to the MenuBar.
-    io:format("Calling wxMenuBar:append/3.~n", []),
     wxMenuBar:append(MenuBar1, Menu2, "Node colour"),
 
     % Create a MenuItem.
@@ -338,7 +356,7 @@ createFrameB(ServerB) ->
 
     % Create menu items.
     % http://erlang.org/doc/man/wxMenuItem.html
-    % NOTE: Replace 5, 10, 20, 40 with ?NODE_RAD1, 2, 3, 4.
+    % NOTE: Replace text 5, 10, 20, 40 with ?NODE_RAD1, 2, 3, 4.
     MenuItemRad1 = wxMenuItem:new([{id, ?MENU_ITEM_RAD1},
         {kind, ?wxITEM_RADIO}, {text, "5 pixels"}]),
     MenuItemRad2 = wxMenuItem:new([{id, ?MENU_ITEM_RAD2},
@@ -356,6 +374,25 @@ createFrameB(ServerB) ->
 
     % Checking the radio button does have an effect after it is appended.
     wxMenuItem:check(MenuItemRad1, [{check, true}]),
+
+    % - - - - - - - - - - - - - - - - - -
+    % Menu 5.
+    Menu5 = wxMenu:new([]),
+    wxMenuBar:append(MenuBar1, Menu5, "Trace options"),
+
+    % Menu items.
+    MenuItemTraceDmap = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_DMAP},
+        {kind, ?wxITEM_CHECK}, {text, "Display list"}]),
+    MenuItemTraceMouse = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_MOUSE},
+        {kind, ?wxITEM_CHECK}, {text, "Mouse events"}]),
+
+    % Add menu items to the menu.
+    wxMenu:append(Menu5, MenuItemTraceDmap),
+    wxMenu:append(Menu5, MenuItemTraceMouse),
+
+    % Show the defaults check/uncheck.
+    wxMenuItem:check(MenuItemTraceDmap, [{check, ?TRACE_DMAP_DEFT}]),
+    wxMenuItem:check(MenuItemTraceMouse, [{check, ?TRACE_MOUSE_DEFT}]),
 
     % - - - - - - - - - - - - - - - - - -
     % Add the MenuBar to the Frame.
@@ -742,6 +779,9 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
 % http://erlang.org/doc/man/array.html#is_array-1
 %
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Dmap is a map containing the current display-list, i.e. list of live nodes.
+% Vars is a map containing "global variables", which do not exist in Erlang!!
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % handleWindowB(FrameB, DCclient, Dlist) when is_list(Dlist) ->
 handleWindowB(FrameB, DCclient, Dmap, Vars)
         when is_map(Dmap) andalso is_map(Vars) ->
@@ -860,6 +900,12 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                         ?MENU_ITEM_RAD4 ->
                             maps:put(nodeRadius, ?NODE_RAD4, Vars);
 
+                        % Trace options.
+                        ?MENU_ITEM_TRACE_DMAP ->
+                            maps:put(traceDmap, int_to_boolean(Cint), Vars);
+                        ?MENU_ITEM_TRACE_MOUSE ->
+                            maps:put(traceMouse, int_to_boolean(Cint), Vars);
+
                         _Else ->
                             carry_on
                     end;
@@ -894,23 +940,26 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                 carry_on;
 
             #wxMouse{type=TypeB, x=X, y=Y} ->
-                case TypeB of
-                motion ->
-                    io:format("mouse motion: "
-                        "X=~p, Y=~p~n",
-                        [X, Y]);
-                left_down ->
-                    io:format("mouse left down: "
-                        "X=~p, Y=~p~n",
-                        [X, Y]);
-                left_up ->
-                    io:format("mouse left up: "
-                        "X=~p, Y=~p~n",
-                        [X, Y]);
-                _Else ->
-                    io:format("mouse event: type=~p, "
-                        "X=~p, Y=~p~n",
-                        [TypeB, X, Y])
+                % Trace mouse events.
+                TraceMouse = maps:get(traceMouse, Vars, ?TRACE_MOUSE_DEFT),
+                if
+                    TraceMouse ->
+                        case TypeB of
+                        motion ->
+                            io:format("mouse motion: "
+                                "X=~p, Y=~p~n", [X, Y]);
+                        left_down ->
+                            io:format("mouse left down: "
+                                "X=~p, Y=~p~n", [X, Y]);
+                        left_up ->
+                            io:format("mouse left up: "
+                                "X=~p, Y=~p~n", [X, Y]);
+                        _Else ->
+                            io:format("mouse event: type=~p, "
+                                "X=~p, Y=~p~n", [TypeB, X, Y])
+                        end;
+                    true ->
+                        ok
                 end,
                 carry_on;
 
@@ -1035,7 +1084,14 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
             ok = wxFrame:setStatusText(FrameB,
                 stringListCat(["Status: N mobiles = ", StrNmobs]), []),
 
-            io:format("~p new display list: ~p~n", [self(), DmapNew]),
+            % Trace the display-list.
+            TraceDmap = maps:get(traceDmap, Vars, ?TRACE_DMAP_DEFT),
+            if
+                TraceDmap ->
+                    io:format("~p new display list: ~p~n", [self(), DmapNew]);
+                true ->
+                    ok
+            end,
 
             % Draw all of the nodes in the display list.
             drawWindowB(DCclient, DmapNew, Vars),
@@ -1061,7 +1117,14 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
             ok = wxFrame:setStatusText(FrameB,
                 stringListCat(["Status: N mobiles = ", StrNmobs]), []),
 
-            io:format("~p new display list: ~p~n", [self(), DmapNew]),
+            % Trace the display-list.
+            TraceDmap = maps:get(traceDmap, Vars, ?TRACE_DMAP_DEFT),
+            if
+                TraceDmap ->
+                    io:format("~p new display list: ~p~n", [self(), DmapNew]);
+                true ->
+                    ok
+            end,
 
             % Draw all of the nodes in the display list.
             drawWindowB(DCclient, DmapNew, Vars),
