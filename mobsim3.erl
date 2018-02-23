@@ -95,8 +95,14 @@
 -define(MENU_ITEM_TRACE_MOUSE, 1041).   % Default is off.
 -define(TRACE_MOUSE_DEFT, false).
 
--define(MENU_ITEM_TRACE_WINDOW, 1042).   % Default is off.
+-define(MENU_ITEM_TRACE_WINDOW, 1042).  % Default is off.
 -define(TRACE_WINDOW_DEFT, false).
+
+-define(MENU_ITEM_TRACE_MENU, 1043).    % Default is off.
+-define(TRACE_MENU_DEFT, false).
+
+-define(MENU_ITEM_TRACE_NODE, 1044).    % Default is on.
+-define(TRACE_NODE_DEFT, true).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Concatenate a list of strings.
@@ -379,16 +385,24 @@ createFrameB(ServerB) ->
         {kind, ?wxITEM_CHECK}, {text, "Mouse events"}]),
     MenuItemTraceWindow = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_WINDOW},
         {kind, ?wxITEM_CHECK}, {text, "Window events"}]),
+    MenuItemTraceMenu = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_MENU},
+        {kind, ?wxITEM_CHECK}, {text, "Menu events"}]),
+    MenuItemTraceNode = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_NODE},
+        {kind, ?wxITEM_CHECK}, {text, "Node events"}]),
 
     % Add menu items to the menu.
     wxMenu:append(Menu5, MenuItemTraceDmap),
     wxMenu:append(Menu5, MenuItemTraceMouse),
     wxMenu:append(Menu5, MenuItemTraceWindow),
+    wxMenu:append(Menu5, MenuItemTraceMenu),
+    wxMenu:append(Menu5, MenuItemTraceNode),
 
     % Show the defaults check/uncheck.
     wxMenuItem:check(MenuItemTraceDmap, [{check, ?TRACE_DMAP_DEFT}]),
     wxMenuItem:check(MenuItemTraceMouse, [{check, ?TRACE_MOUSE_DEFT}]),
     wxMenuItem:check(MenuItemTraceWindow, [{check, ?TRACE_WINDOW_DEFT}]),
+    wxMenuItem:check(MenuItemTraceMenu, [{check, ?TRACE_MENU_DEFT}]),
+    wxMenuItem:check(MenuItemTraceNode, [{check, ?TRACE_NODE_DEFT}]),
 
     % - - - - - - - - - - - - - - - - - -
     % Add the MenuBar to the Frame.
@@ -844,18 +858,24 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                 % http://erlang.org/doc/man/wxEvtHandler.html#type-wxCommand
                 % http://erlang.org/doc/man/wxCommandEvent.html
                 % http://docs.wxwidgets.org/2.8.12/wx_wxcommandevent.html
+                TraceMenu = maps:get(traceMenu, Vars, ?TRACE_MENU_DEFT),
                 case TypeB of
                 command_menu_selected ->
-                    io:format("menu item selected: "
-                        "id=~p, cmdString=~p, commandInt=~p, extraLong=~p~n",
-                        [Id, Cstring, Cint, Elong]),
+                    if TraceMenu ->
+                        io:format("menu item selected: "
+                           "id=~p, cmdString=~p, commandInt=~p, extraLong=~p~n",
+                            [Id, Cstring, Cint, Elong]);
+                    true -> ok
+                    end,
                     case Id of
                         % http://docs.wxwidgets.org/2.8.12/wx_stdevtid.html
                         ?wxID_EXIT ->
-                            io:format("Exit due to menu item selection~n", []),
+                            if TraceMenu ->
+                                io:format("Exit menu item selected~n", []);
+                            true -> ok
+                            end,
                             exit_normal;
                         ?MENU_ITEM_R ->
-                            io:format("Menu item R was clicked~n", []),
                             % Change the node colour.
                             % http://erlang.org/doc/man/maps.html#put-3
                             % Yes, I realise the VarsNew is superfluous!
@@ -864,7 +884,6 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                             VarsNew;
 %                            carry_on;
                         ?MENU_ITEM_G ->
-                            io:format("Menu item G was clicked~n", []),
                             % Change the node colour.
                             % http://erlang.org/doc/man/maps.html#put-3
                             % Yes, I realise the VarsNew is superfluous!
@@ -873,7 +892,6 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                             VarsNew;
 %                            carry_on;
                         ?MENU_ITEM_B ->
-                            io:format("Menu item B was clicked~n", []),
                             % Change the node colour.
                             % http://erlang.org/doc/man/maps.html#put-3
                             % Yes, I realise the VarsNew is superfluous!
@@ -883,16 +901,12 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
 %                            carry_on;
 
                         ?MENU_ITEM_CIRCLE ->
-                            io:format("Menu item Circle was clicked~n", []),
                             maps:put(nodeShape, nodeShapeCircle, Vars);
                         ?MENU_ITEM_SQUARE ->
-                            io:format("Menu item Square was clicked~n", []),
                             maps:put(nodeShape, nodeShapeSquare, Vars);
                         ?MENU_ITEM_HEXAGON ->
-                            io:format("Menu item Hexagon was clicked~n", []),
                             maps:put(nodeShape, nodeShapeHexagon, Vars);
                         ?MENU_ITEM_X ->
-                            io:format("Menu item X was clicked~n", []),
                             maps:put(nodeShape, nodeShapeX, Vars);
 
                         ?MENU_ITEM_RAD1 ->
@@ -911,14 +925,21 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                             maps:put(traceMouse, int_to_boolean(Cint), Vars);
                         ?MENU_ITEM_TRACE_WINDOW ->
                             maps:put(traceWindow, int_to_boolean(Cint), Vars);
+                        ?MENU_ITEM_TRACE_MENU ->
+                            maps:put(traceMenu, int_to_boolean(Cint), Vars);
+                        ?MENU_ITEM_TRACE_NODE ->
+                            maps:put(traceNode, int_to_boolean(Cint), Vars);
 
                         _Else ->
                             carry_on
                     end;
                 _Else ->
-                    io:format("command event ~p: "
-                        "id=~p, cmdString=~p, commandInt=~p, extraLong=~p~n",
-                        [TypeB, Id, Cstring, Cint, Elong]),
+                    if TraceMenu ->
+                        io:format("command event ~p: "
+                           "id=~p, cmdString=~p, commandInt=~p, extraLong=~p~n",
+                            [TypeB, Id, Cstring, Cint, Elong]);
+                    true -> ok
+                    end,
                     carry_on
                 end;
 
@@ -946,6 +967,37 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                         [KeyC]);
                 _Else ->
                     true
+                end,
+                carry_on;
+
+            #wxMenu{type=TypeB, menuId=Id, menu=Menu} ->
+                % Trace menu events.
+                TraceMenu = maps:get(traceMenu, Vars, ?TRACE_MENU_DEFT),
+                case TypeB of
+                menu_open ->
+                    if TraceMenu ->
+                        io:format("menu open: menuId=~p, menu=~p~n",
+                            [Id, Menu]);
+                    true -> ok
+                    end;
+                menu_close ->
+                    if TraceMenu ->
+                        io:format("menu close: menuId=~p, menu=~p~n",
+                            [Id, Menu]);
+                    true -> ok
+                    end;
+                menu_highlight ->
+                    if TraceMenu ->
+                        io:format("menu highlight: menuId=~p, menu=~p~n",
+                            [Id, Menu]);
+                    true -> ok
+                    end;
+                _Else ->
+                    if TraceMenu ->
+                        io:format("unknown menu event: menuId=~p, menu=~p~n",
+                            [Id, Menu]);
+                    true -> ok
+                    end
                 end,
                 carry_on;
 
@@ -1118,10 +1170,13 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
         % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         % Handle position message from a mobile client.
         { PIDclient, pos, Ntimes, { Xold, Yold, Xnew, Ynew }} ->
-            io:format("~p received position event ~p from ~p: "
-                "(~p,~p,~p,~p)~n",
-                [self(), Ntimes, PIDclient, Xold, Yold, Xnew, Ynew]),
-
+            TraceNode = maps:get(traceNode, Vars, ?TRACE_NODE_DEFT),
+            if TraceNode ->
+                io:format("~p received position event ~p from ~p: "
+                    "(~p,~p,~p,~p)~n",
+                    [self(), Ntimes, PIDclient, Xold, Yold, Xnew, Ynew]);
+            true -> ok
+            end,
             % Confirm receipt of the data.
             PIDclient ! { self(), pos_resp, Ntimes },
 
@@ -1154,9 +1209,13 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
 
         % Handle finish message from a mobile client.
         { PIDclient, fin, Ntimes, { Xold, Yold, Xnew, Ynew }} ->
-            io:format("~p received finish event ~p from ~p: "
-                "(~p,~p,~p,~p)~n",
-                [self(), Ntimes, PIDclient, Xold, Yold, Xnew, Ynew]),
+            TraceNode = maps:get(traceNode, Vars, ?TRACE_NODE_DEFT),
+            if TraceNode ->
+                io:format("~p received finish event ~p from ~p: "
+                    "(~p,~p,~p,~p)~n",
+                    [self(), Ntimes, PIDclient, Xold, Yold, Xnew, Ynew]);
+            true -> ok
+            end,
 
             % Confirm receipt of the data.
             PIDclient ! { self(), fin_resp, Ntimes },
