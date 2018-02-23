@@ -1,5 +1,4 @@
-% src/erlang/test1.erl   2018-2-16   Alan U. Kennington.
-% $Id$
+% src/erlang/test1.erl   2018-2-24   Alan U. Kennington.
 % Test run of erlang programming language to see what it can do.
 % Based on http://erlang.org/doc/getting_started/seq_prog.html
 

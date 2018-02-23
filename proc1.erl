@@ -1,5 +1,4 @@
-% src/erlang/proc1.erl   2018-2-18   Alan U. Kennington.
-% $Id$
+% src/erlang/proc1.erl   2018-2-24   Alan U. Kennington.
 % Test run of erlang programming language "processes" (i.e. threads).
 % Based on: http://erlang.org/doc/getting_started/conc_prog.html
 % For sleep/1: http://erlang.org/doc/man/timer.html#sleep-1

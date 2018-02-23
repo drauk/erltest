@@ -1,5 +1,4 @@
-% src/erlang/wx1.erl   2018-2-19   Alan U. Kennington.
-% $Id$
+% src/erlang/wx1.erl   2018-2-24   Alan U. Kennington.
 % Familiarization with wxErlang library.
 % Reference manual: http://erlang.org/doc/apps/wx/index.html
 % See also file: /usr/local/lib/erlang/lib/wx-1.8.3/examples/simple/hello.erl

@@ -1,7 +1,6 @@
 % src/erlang/mobsim3.erl   2018-2-24   Alan U. Kennington.
 % This module will simulate a mobile network using wxErlang.
 % Work In Progress!!!
-% Added display lists and double buffering.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Test for this module.
 %
@@ -10,7 +9,7 @@
 % (serverD@hostA)1> c(mobsim3).
 % (serverD@hostA)2> mobsim3:startMobSimB().
 %
-% On host B, start Erlang, compile the module, and start a server.
+% On host B, start Erlang, compile the module, and start some client processes.
 % userB@hostB> erl -sname clientD
 % (clientD@hostB)1> c(mobsim3).
 % (clientD@hostB)2> mobsim3:startMobileBsample1(serverD@hostA).
