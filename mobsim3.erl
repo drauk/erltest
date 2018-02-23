@@ -1,4 +1,4 @@
-% src/erlang/mobsim3.erl   2018-2-23   Alan U. Kennington.
+% src/erlang/mobsim3.erl   2018-2-24   Alan U. Kennington.
 % This module will simulate a mobile network using wxErlang.
 % Work In Progress!!!
 % Added display lists and double buffering.
@@ -884,17 +884,11 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                             VarsNew;
 %                            carry_on;
                         ?MENU_ITEM_G ->
-                            % Change the node colour.
-                            % http://erlang.org/doc/man/maps.html#put-3
-                            % Yes, I realise the VarsNew is superfluous!
                             VarsNew = maps:put(nodeColour,
                                 ?NODE_COLOUR_G, Vars),
                             VarsNew;
 %                            carry_on;
                         ?MENU_ITEM_B ->
-                            % Change the node colour.
-                            % http://erlang.org/doc/man/maps.html#put-3
-                            % Yes, I realise the VarsNew is superfluous!
                             VarsNew = maps:put(nodeColour,
                                 ?NODE_COLOUR_B, Vars),
                             VarsNew;
@@ -1004,24 +998,31 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
             #wxMouse{type=TypeB, x=X, y=Y} ->
                 % Trace mouse events.
                 TraceMouse = maps:get(traceMouse, Vars, ?TRACE_MOUSE_DEFT),
-                if
-                    TraceMouse ->
-                        case TypeB of
-                        motion ->
-                            io:format("mouse motion: "
-                                "X=~p, Y=~p~n", [X, Y]);
-                        left_down ->
-                            io:format("mouse left down: "
-                                "X=~p, Y=~p~n", [X, Y]);
-                        left_up ->
-                            io:format("mouse left up: "
-                                "X=~p, Y=~p~n", [X, Y]);
-                        _Else ->
-                            io:format("mouse event: type=~p, "
-                                "X=~p, Y=~p~n", [TypeB, X, Y])
-                        end;
-                    true ->
-                        ok
+                case TypeB of
+                motion ->
+                    if TraceMouse ->
+                        io:format("mouse motion: "
+                            "X=~p, Y=~p~n", [X, Y]);
+                    true -> ok
+                    end;
+                left_down ->
+                    if TraceMouse ->
+                        io:format("mouse left down: "
+                            "X=~p, Y=~p~n", [X, Y]);
+                    true -> ok
+                    end;
+                left_up ->
+                    if TraceMouse ->
+                    io:format("mouse left up: "
+                        "X=~p, Y=~p~n", [X, Y]);
+                    true -> ok
+                    end;
+                _Else ->
+                    if TraceMouse ->
+                    io:format("mouse event: type=~p, "
+                        "X=~p, Y=~p~n", [TypeB, X, Y]);
+                    true -> ok
+                    end
                 end,
                 carry_on;
 
@@ -1159,7 +1160,8 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                     io:format("~p wx event handler normal exit~n", [self()]),
                     ok;
                 is_map(CarryOn) ->
-                    io:format("~p wx event handler changed Vars~n", [self()]),
+                    io:format("~p global variable changed by event handler~n",
+                        [self()]),
                     handleWindowB(FrameB, DCclient, Dmap, CarryOn);
                 true ->
                     io:format("~p wx event handler abnormal exit: CarryOn=~p~n",
@@ -1195,11 +1197,9 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
 
             % Trace the display-list.
             TraceDmap = maps:get(traceDmap, Vars, ?TRACE_DMAP_DEFT),
-            if
-                TraceDmap ->
+            if TraceDmap ->
                     io:format("~p new display list: ~p~n", [self(), DmapNew]);
-                true ->
-                    ok
+            true -> ok
             end,
 
             % Draw all of the nodes in the display list.
@@ -1232,20 +1232,18 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
 
             % Trace the display-list.
             TraceDmap = maps:get(traceDmap, Vars, ?TRACE_DMAP_DEFT),
-            if
-                TraceDmap ->
+            if TraceDmap ->
                     io:format("~p new display list: ~p~n", [self(), DmapNew]);
-                true ->
-                    ok
+            true -> ok
             end,
 
             % Draw all of the nodes in the display list.
             drawWindowB(DCclient, DmapNew, Vars),
-
+            % Loop around and do it all again.
             handleWindowB(FrameB, DCclient, DmapNew, Vars);
 
         % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        % All other event classes which are "connected".
+        % All other event classes which are connected.
         Evt ->
             io:format("Process ~p received event ~p~n", [self(), Evt]),
             handleWindowB(FrameB, DCclient, Dmap, Vars)
