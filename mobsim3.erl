@@ -50,9 +50,9 @@
 % Some constants for menu items.
 % Must avoid range 5000 to 600, and probably below about 120 also.
 % There should be a systematic way to allocate these ID values.
--define(MENU_ITEM_1, 1001).
--define(MENU_ITEM_2, 1002).
--define(MENU_ITEM_3, 1003).
+-define(MENU_ITEM_R, 1001).
+-define(MENU_ITEM_G, 1002).
+-define(MENU_ITEM_B, 1003).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Concatenate a list of strings.
@@ -190,39 +190,50 @@ createFrameB(ServerB) ->
     % http://erlang.org/doc/man/wxMenuItem.html
     % This MenuItem becomes a Separator if "id" is not set!
     io:format("Calling wxMenuItem:new/1.~n", []),
-    MenuItem1 = wxMenuItem:new(
-        [{id, ?MENU_ITEM_1}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1"}]),
+    MenuItemR = wxMenuItem:new(
+%        [{id, ?MENU_ITEM_R}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item R"}]),
+        [{id, ?MENU_ITEM_R}, {kind, ?wxITEM_RADIO}, {text, "Menu Item R"}]),
     io:format("Calling wxMenuItem:new/1.~n", []),
-    MenuItem2 = wxMenuItem:new(
-        [{id, ?MENU_ITEM_2}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 2"}]),
+    MenuItemG = wxMenuItem:new(
+%        [{id, ?MENU_ITEM_G}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item G"}]),
+        [{id, ?MENU_ITEM_G}, {kind, ?wxITEM_RADIO}, {text, "Menu Item G"}]),
     io:format("Calling wxMenuItem:new/1.~n", []),
-    MenuItem3 = wxMenuItem:new(
-        [{id, ?MENU_ITEM_3}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 3"}]),
+    MenuItemB = wxMenuItem:new(
+%        [{id, ?MENU_ITEM_B}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item B"}]),
+        [{id, ?MENU_ITEM_B}, {kind, ?wxITEM_RADIO}, {text, "Menu Item B"}]),
+
+    % This has no effect here.
+%    io:format("Calling wxMenuItem:check/2.~n", []),
+%    wxMenuItem:check(MenuItemG, [{check, true}]),
 
     % Add menu items to Menu 1.
     io:format("Calling wxMenu:append/2.~n", []),
-    wxMenu:append(Menu1, MenuItem1),
+    wxMenu:append(Menu1, MenuItemR),
 
     io:format("Calling wxMenu:append/2.~n", []),
-    wxMenu:append(Menu1, MenuItem2),
+    wxMenu:append(Menu1, MenuItemG),
     io:format("Calling wxMenu:append/2.~n", []),
-    wxMenu:append(Menu1, MenuItem3),
+    wxMenu:append(Menu1, MenuItemB),
+
+    % Checking the radio button does have an effect after it is appended.
+    io:format("Calling wxMenuItem:check/2.~n", []),
+    wxMenuItem:check(MenuItemG, [{check, true}]),
 
     % This does override the wxMenuItem:new/2 setting for "text".
     io:format("Calling wxMenuItem:setText/2.~n", []),
-    wxMenuItem:setText(MenuItem1, "Nodes are red"),
+    wxMenuItem:setText(MenuItemR, "Nodes are red"),
     io:format("Calling wxMenuItem:enable/1.~n", []),
-    wxMenuItem:enable(MenuItem1, [{enable, true}]),
+    wxMenuItem:enable(MenuItemR, [{enable, true}]),
 
     io:format("Calling wxMenuItem:setText/2.~n", []),
-    wxMenuItem:setText(MenuItem2, "Nodes are green"),
+    wxMenuItem:setText(MenuItemG, "Nodes are green"),
     io:format("Calling wxMenuItem:enable/1.~n", []),
-    wxMenuItem:enable(MenuItem2, [{enable, true}]),
+    wxMenuItem:enable(MenuItemG, [{enable, true}]),
 
     io:format("Calling wxMenuItem:setText/2.~n", []),
-    wxMenuItem:setText(MenuItem3, "Nodes are blue"),
+    wxMenuItem:setText(MenuItemB, "Nodes are blue"),
     io:format("Calling wxMenuItem:enable/1.~n", []),
-    wxMenuItem:enable(MenuItem3, [{enable, true}]),
+    wxMenuItem:enable(MenuItemB, [{enable, true}]),
 
     % Add Quit item to Menu 1.
     io:format("Calling wxMenu:appendSeparator/1.~n", []),
@@ -651,24 +662,24 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                         ?wxID_EXIT ->
                             io:format("Exit due to menu item selection~n", []),
                             exit_normal;
-                        ?MENU_ITEM_1 ->
-                            io:format("Menu item 1 was clicked~n", []),
+                        ?MENU_ITEM_R ->
+                            io:format("Menu item R was clicked~n", []),
                             % Change the node colour.
                             % http://erlang.org/doc/man/maps.html#put-3
                             % Yes, I realise the VarsNew is superfluous!
                             VarsNew = maps:put(colNode, {255, 128, 128}, Vars),
                             VarsNew;
 %                            carry_on;
-                        ?MENU_ITEM_2 ->
-                            io:format("Menu item 2 was clicked~n", []),
+                        ?MENU_ITEM_G ->
+                            io:format("Menu item G was clicked~n", []),
                             % Change the node colour.
                             % http://erlang.org/doc/man/maps.html#put-3
                             % Yes, I realise the VarsNew is superfluous!
                             VarsNew = maps:put(colNode, {128, 255, 128}, Vars),
                             VarsNew;
 %                            carry_on;
-                        ?MENU_ITEM_3 ->
-                            io:format("Menu item 3 was clicked~n", []),
+                        ?MENU_ITEM_B ->
+                            io:format("Menu item B was clicked~n", []),
                             % Change the node colour.
                             % http://erlang.org/doc/man/maps.html#put-3
                             % Yes, I realise the VarsNew is superfluous!
