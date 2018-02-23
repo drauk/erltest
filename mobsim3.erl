@@ -95,6 +95,9 @@
 -define(MENU_ITEM_TRACE_MOUSE, 1041).   % Default is off.
 -define(TRACE_MOUSE_DEFT, false).
 
+-define(MENU_ITEM_TRACE_WINDOW, 1042).   % Default is off.
+-define(TRACE_WINDOW_DEFT, false).
+
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Concatenate a list of strings.
 % This should be called string:join/1, but string:* is deprecated.
@@ -119,7 +122,7 @@ stringListCat(L) when is_list(L) ->
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 int_to_boolean(Int, Default)
         when is_integer(Int) andalso is_boolean(Default) ->
-    % Erlang should have a test like: "Tracemap = (Cint /= 0)".
+    % Erlang should have a test like: "Value = (Int /= 0)".
     case Int of
         0 ->
             false;
@@ -129,6 +132,13 @@ int_to_boolean(Int, Default)
             Default
     end.
 
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% The default here is "false" because this function is intended for situations
+% where 0 and 1 are the only expected value for Int.
+% Therefore any other value is considered to be an error.
+% So then it is safer to do nothing.
+% This default value is the opposite of the convention in C/C++.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 int_to_boolean(Int) when is_integer(Int) ->
     int_to_boolean(Int, false).
 
@@ -209,7 +219,7 @@ createFrameB(ServerB) ->
 
     % Create a frame on the X server.
     % This call triggers the GLib-GObject-WARNING for plug-in GtkIMContextSCIM.
-    io:format("Calling wxFrame:new/4.~n", []),
+%    io:format("Calling wxFrame:new/4.~n", []),
     % http://erlang.org/doc/man/wxFrame.html
     % http://docs.wxwidgets.org/2.8.12/wx_wxframe.html#wxframewxframe
     FrameB = wxFrame:new(ServerB, -1, TitleText,
@@ -219,21 +229,21 @@ createFrameB(ServerB) ->
 
     % Create status bar.
     % This call triggers the GLib-GObject-WARNING for plug-in GtkIMContextSCIM.
-    io:format("Calling wxFrame:createStatusBar/2.~n", []),
+%    io:format("Calling wxFrame:createStatusBar/2.~n", []),
     wxFrame:createStatusBar(FrameB, []),
     % Carriage return. Get the shell text cursor back to the left of the line.
     io:format("~n", []),
 
     % Create tool bar.
     % This doesn't create a tool bar, and doesn't cause a Glib/SCIM warning.
-    io:format("Calling wxFrame:createToolBar/2.~n", []),
+%    io:format("Calling wxFrame:createToolBar/2.~n", []),
     wxFrame:createToolBar(FrameB, []),
     % Carriage return. Get the shell text cursor back to the left of the line.
 
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     % Create MenuBar 1.
     % http://erlang.org/doc/man/wxMenuBar.html
-    io:format("Calling wxMenuBar:new/0.~n", []),
+%    io:format("Calling wxMenuBar:new/0.~n", []),
     MenuBar1 = wxMenuBar:new(),
 
     % - - - - - - - - - - - - - - - - - -
@@ -247,13 +257,10 @@ createFrameB(ServerB) ->
     % Create some menu items.
     % http://erlang.org/doc/man/wxMenuItem.html
     % This MenuItem becomes a Separator if "id" is not set!
-    io:format("Calling wxMenuItem:new/1.~n", []),
     MenuItem1 = wxMenuItem:new(
         [{id, ?MENU_ITEM_1}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 1"}]),
-    io:format("Calling wxMenuItem:new/1.~n", []),
     MenuItem2 = wxMenuItem:new(
         [{id, ?MENU_ITEM_2}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 2"}]),
-    io:format("Calling wxMenuItem:new/1.~n", []),
     MenuItem3 = wxMenuItem:new(
         [{id, ?MENU_ITEM_3}, {kind, ?wxITEM_NORMAL}, {text, "Menu Item 3"}]),
 
@@ -270,9 +277,7 @@ createFrameB(ServerB) ->
     wxMenuItem:setText(MenuItem3, "Menu Item 3"),
 
     % Add Quit item to Menu 1.
-    io:format("Calling wxMenu:appendSeparator/1.~n", []),
     wxMenu:appendSeparator(Menu1),
-    io:format("Calling wxMenu:append/3.~n", []),
     % Standard events IDs: http://docs.wxwidgets.org/2.8.12/wx_stdevtid.html
     % Avoid the range 5000 to 6000.
     wxMenu:append(Menu1, ?wxID_EXIT, "&Quit"),
@@ -286,40 +291,27 @@ createFrameB(ServerB) ->
     % Create a MenuItem.
     % http://erlang.org/doc/man/wxMenuItem.html
     % This MenuItem becomes a Separator if "id" is not set!
-    io:format("Calling wxMenuItem:new/1.~n", []),
     MenuItemR = wxMenuItem:new(
         [{id, ?MENU_ITEM_R}, {kind, ?wxITEM_RADIO}, {text, "Menu Item R"}]),
-    io:format("Calling wxMenuItem:new/1.~n", []),
     MenuItemG = wxMenuItem:new(
         [{id, ?MENU_ITEM_G}, {kind, ?wxITEM_RADIO}, {text, "Menu Item G"}]),
-    io:format("Calling wxMenuItem:new/1.~n", []),
     MenuItemB = wxMenuItem:new(
         [{id, ?MENU_ITEM_B}, {kind, ?wxITEM_RADIO}, {text, "Menu Item B"}]),
 
     % This has no effect here.
-%    io:format("Calling wxMenuItem:check/2.~n", []),
 %    wxMenuItem:check(MenuItemG, [{check, true}]),
 
     % Add menu items to Menu 1.
-    io:format("Calling wxMenu:append/2.~n", []),
     wxMenu:append(Menu2, MenuItemR),
-    io:format("Calling wxMenu:append/2.~n", []),
     wxMenu:append(Menu2, MenuItemG),
-    io:format("Calling wxMenu:append/2.~n", []),
     wxMenu:append(Menu2, MenuItemB),
 
     % Checking the radio button does have an effect after it is appended.
-    io:format("Calling wxMenuItem:check/2.~n", []),
     wxMenuItem:check(MenuItemG, [{check, true}]),
 
     % This does override the wxMenuItem:new/2 setting for "text".
-    io:format("Calling wxMenuItem:setText/2.~n", []),
     wxMenuItem:setText(MenuItemR, "Red"),
-
-    io:format("Calling wxMenuItem:setText/2.~n", []),
     wxMenuItem:setText(MenuItemG, "Green"),
-
-    io:format("Calling wxMenuItem:setText/2.~n", []),
     wxMenuItem:setText(MenuItemB, "Blue"),
 
     % - - - - - - - - - - - - - - - - - -
@@ -385,25 +377,27 @@ createFrameB(ServerB) ->
         {kind, ?wxITEM_CHECK}, {text, "Display list"}]),
     MenuItemTraceMouse = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_MOUSE},
         {kind, ?wxITEM_CHECK}, {text, "Mouse events"}]),
+    MenuItemTraceWindow = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_WINDOW},
+        {kind, ?wxITEM_CHECK}, {text, "Window events"}]),
 
     % Add menu items to the menu.
     wxMenu:append(Menu5, MenuItemTraceDmap),
     wxMenu:append(Menu5, MenuItemTraceMouse),
+    wxMenu:append(Menu5, MenuItemTraceWindow),
 
     % Show the defaults check/uncheck.
     wxMenuItem:check(MenuItemTraceDmap, [{check, ?TRACE_DMAP_DEFT}]),
     wxMenuItem:check(MenuItemTraceMouse, [{check, ?TRACE_MOUSE_DEFT}]),
+    wxMenuItem:check(MenuItemTraceWindow, [{check, ?TRACE_WINDOW_DEFT}]),
 
     % - - - - - - - - - - - - - - - - - -
     % Add the MenuBar to the Frame.
-    io:format("Calling wxFrame:setMenuBar/2.~n", []),
     wxFrame:setMenuBar(FrameB, MenuBar1),
 
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     % Set keyboard focus.
     % This seems to have no effect.
 %    wxFrame:setFocus(FrameB),
-    io:format("Calling wxWindow:setFocus/1.~n", []),
     wxWindow:setFocus(FrameB),
 
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -798,19 +792,26 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
             % variables are constant?
             CarryOn = case EvtB of
             #wxClose{type=TypeB} ->
+                TraceWindow = maps:get(traceWindow, Vars, ?TRACE_WINDOW_DEFT),
                 case TypeB of
                 % This is the event which is called when the window is closed.
                 close_window ->
-                    io:format("Process ~p closing window id=~p, obj=~p~n",
-                        [self(), Id, Obj]),
+                    if TraceWindow ->
+                        io:format("Process ~p closing window id=~p, obj=~p~n",
+                            [self(), Id, Obj]);
+                    true -> ok
+                    end,
                     wxFrame:setStatusText(FrameB, "Closing now...", []),
                     wxWindow:destroy(FrameB),
 %                    exit(normal);
                     exit_normal;
                 % This event is never received!?
                 end_session ->
-                    io:format("Process ~p ending session id=~p, obj=~p~n",
-                        [self(), Id, Obj]),
+                    if TraceWindow ->
+                        io:format("Process ~p ending session id=~p, obj=~p~n",
+                            [self(), Id, Obj]);
+                    true -> ok
+                    end,
                     wxFrame:setStatusText(FrameB, "Ending session now...", []),
                     wxWindow:destroy(FrameB),
 %                    exit(normal);
@@ -820,18 +821,21 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                 end;
 
             #wxActivate{type=TypeB, active=Ac} ->
-                case TypeB of
-                activate ->
-                    io:format("window activate: active=~p~n",
-                        [Ac]);
-                activate_app ->
-                    io:format("window activate app: active=~p~n",
-                        [Ac]);
-                hibernate ->
-                    io:format("window hibernate: active=~p~n",
-                        [Ac]);
-                _Else ->
-                    true
+                TraceWindow = maps:get(traceWindow, Vars, ?TRACE_WINDOW_DEFT),
+                if
+                    TraceWindow ->
+                        case TypeB of
+                        activate ->
+                            io:format("window activate: active=~p~n", [Ac]);
+                        activate_app ->
+                            io:format("window activate app: active=~p~n", [Ac]);
+                        hibernate ->
+                            io:format("window hibernate: active=~p~n", [Ac]);
+                        _Else ->
+                            ok
+                        end;
+                    true ->
+                        ok
                 end,
                 carry_on;
 
@@ -905,6 +909,8 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                             maps:put(traceDmap, int_to_boolean(Cint), Vars);
                         ?MENU_ITEM_TRACE_MOUSE ->
                             maps:put(traceMouse, int_to_boolean(Cint), Vars);
+                        ?MENU_ITEM_TRACE_WINDOW ->
+                            maps:put(traceWindow, int_to_boolean(Cint), Vars);
 
                         _Else ->
                             carry_on
@@ -917,12 +923,16 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                 end;
 
             #wxIconize{type=TypeB, iconized=Ic} ->
+                % Trace window events.
+                TraceWindow = maps:get(traceWindow, Vars, ?TRACE_WINDOW_DEFT),
                 case TypeB of
                 iconize ->
-                    io:format("window iconize: iconized=~p~n",
-                        [Ic]);
+                    if TraceWindow ->
+                        io:format("window iconize: iconized=~p~n", [Ic]);
+                    true -> ok
+                    end;
                 _Else ->
-                    true
+                    ok
                 end,
                 carry_on;
 
@@ -965,22 +975,34 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
 
             % The returned rectangle is always {0, 0, 0, 0}. Not good!?
             #wxMove{type=TypeB, pos={Ws, Hs}, rect={Xr, Yr, Wr, Hr}} ->
-                case TypeB of
-                move ->
-                    io:format("window move: "
-                        "pos=[~p, ~p], rect: X=~p, Y=~p, W=~p, H=~p~n",
-                        [Ws, Hs, Xr, Yr, Wr, Hr]);
-                _Else ->
-                    io:format("window move: unknown type = ~p: "
-                        "pos=[~p, ~p], rect: X=~p, Y=~p, W=~p, H=~p~n",
-                        [TypeB, Ws, Hs, Xr, Yr, Wr, Hr])
+                % Trace window events.
+                TraceWindow = maps:get(traceWindow, Vars, ?TRACE_WINDOW_DEFT),
+                if
+                    TraceWindow ->
+                        case TypeB of
+                        move ->
+                            io:format("window move: "
+                                "pos=[~p, ~p], rect: X=~p, Y=~p, W=~p, H=~p~n",
+                                [Ws, Hs, Xr, Yr, Wr, Hr]);
+                        _Else ->
+                            io:format("window move: unknown type = ~p: "
+                                "pos=[~p, ~p], rect: X=~p, Y=~p, W=~p, H=~p~n",
+                                [TypeB, Ws, Hs, Xr, Yr, Wr, Hr])
+                        end;
+                    true ->
+                        ok
                 end,
                 carry_on;
 
             #wxPaint{type=TypeB} ->
+                % Trace window events.
+                TraceWindow = maps:get(traceWindow, Vars, ?TRACE_WINDOW_DEFT),
                 case TypeB of
                 paint ->
-                    io:format("window paint event=~p~n", [EvtB]),
+                    if TraceWindow ->
+                        io:format("window paint event=~p~n", [EvtB]);
+                    true -> ok
+                    end,
                     % Create temporary context for the refresh.
                  % http://docs.wxwidgets.org/2.8.12/wx_wxpaintdc.html#wxpaintdc
                     DCpaint = wxPaintDC:new(FrameB),
@@ -991,48 +1013,80 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                     % Clean out the trash.
                     wxPaintDC:destroy(DCpaint);
                 _Else ->
-                    io:format("window paint event: unknown type=~p ", [TypeB])
+                    if TraceWindow ->
+                        io:format("window paint event: unknown type=~p ",
+                            [TypeB]);
+                    true -> ok
+                    end
                 end,
                 carry_on;
 
             % The returned rectangle is always {0, 0, 0, 0}. Not good!?
             #wxSize{type=TypeB, size={Ws, Hs}, rect={Xr, Yr, Wr, Hr}} ->
+                TraceWindow = maps:get(traceWindow, Vars, ?TRACE_WINDOW_DEFT),
                 case TypeB of
                 size ->
-                    io:format("window size: "
-                        "size=[~p, ~p], rect: X=~p, Y=~p, W=~p, H=~p~n",
-                        [Ws, Hs, Xr, Yr, Wr, Hr]);
+                    if TraceWindow ->
+                        io:format("window size: "
+                            "size=[~p, ~p], rect: X=~p, Y=~p, W=~p, H=~p~n",
+                            [Ws, Hs, Xr, Yr, Wr, Hr]);
+                    true -> ok
+                    end;
                 _Else ->
-                    io:format("window size: unknown type = ~p: "
-                        "size=[~p, ~p], rect: X=~p, Y=~p, W=~p, H=~p~n",
-                        [TypeB, Ws, Hs, Xr, Yr, Wr, Hr])
+                    if TraceWindow ->
+                        io:format("window size: unknown type = ~p: "
+                            "size=[~p, ~p], rect: X=~p, Y=~p, W=~p, H=~p~n",
+                            [TypeB, Ws, Hs, Xr, Yr, Wr, Hr]);
+                    true -> ok
+                    end
                 end,
                 carry_on;
 
             #wxShow{type=TypeB} ->
+                TraceWindow = maps:get(traceWindow, Vars, ?TRACE_WINDOW_DEFT),
                 case TypeB of
                 show ->
-                    io:format("window show~n");
+                    if TraceWindow ->
+                        io:format("window show~n");
+                    true -> ok
+                    end;
                 _Else ->
-                    io:format("window show: unknown type=~p ", [TypeB])
+                    if TraceWindow ->
+                        io:format("window show: unknown type=~p ", [TypeB]);
+                    true -> ok
+                    end
                 end,
                 carry_on;
 
             #wxWindowCreate{type=TypeB} ->
+                TraceWindow = maps:get(traceWindow, Vars, ?TRACE_WINDOW_DEFT),
                 case TypeB of
                 create ->
-                    io:format("window create~n");
+                    if TraceWindow ->
+                        io:format("window create~n");
+                    true -> ok
+                    end;
                 _Else ->
-                    io:format("window create: unknown type=~p ", [TypeB])
+                    if TraceWindow ->
+                        io:format("window create: unknown type=~p ", [TypeB]);
+                    true -> ok
+                    end
                 end,
                 carry_on;
 
             #wxWindowDestroy{type=TypeB} ->
+                TraceWindow = maps:get(traceWindow, Vars, ?TRACE_WINDOW_DEFT),
                 case TypeB of
                 destroy ->
-                    io:format("window destroy~n");
+                    if TraceWindow ->
+                        io:format("window destroy~n");
+                    true -> ok
+                    end;
                 _Else ->
-                    io:format("window destroy: unknown type=~p ", [TypeB])
+                    if TraceWindow ->
+                        io:format("window destroy: unknown type=~p ", [TypeB]);
+                    true -> ok
+                    end
                 end,
                 carry_on;
 
