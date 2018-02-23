@@ -95,13 +95,19 @@
 -define(MENU_ITEM_TRACE_MOUSE, 1041).   % Default is off.
 -define(TRACE_MOUSE_DEFT, false).
 
--define(MENU_ITEM_TRACE_WINDOW, 1042).  % Default is off.
+-define(MENU_ITEM_TRACE_MOTION, 1042).  % Default is off.
+-define(TRACE_MOTION_DEFT, false).
+
+-define(MENU_ITEM_TRACE_CURSOR, 1043).  % Default is off.
+-define(TRACE_CURSOR_DEFT, false).
+
+-define(MENU_ITEM_TRACE_WINDOW, 1044).  % Default is off.
 -define(TRACE_WINDOW_DEFT, false).
 
--define(MENU_ITEM_TRACE_MENU, 1043).    % Default is off.
+-define(MENU_ITEM_TRACE_MENU, 1045).    % Default is off.
 -define(TRACE_MENU_DEFT, false).
 
--define(MENU_ITEM_TRACE_NODE, 1044).    % Default is on.
+-define(MENU_ITEM_TRACE_NODE, 1046).    % Default is on.
 -define(TRACE_NODE_DEFT, true).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -160,18 +166,20 @@ int_to_boolean(Int) when is_integer(Int) ->
 getSname() ->
     % See http://erlang.org/doc/man/init.html#get_argument-1
     A = init:get_argument(sname),
-    if
-        A == error ->
+    case A of
+        error ->
             "";
-        true ->
+        {ok, L} ->
             % Focus on the list of values. Could be more than one.
-            {_, L} = A,
             [[Sname]] = lists:sublist(L, 1, 1),
-            Sname
-    end.
+            Sname;
+        true ->
+            ""
+     end.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % See http://erlang.org/doc/man/inet.html#gethostname-0
+% The documentation says that inet:gethostname() will always succeed.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 getHostname() ->
     {ok, H} = inet:gethostname(),
@@ -219,7 +227,6 @@ createFrameB(ServerB) ->
         Sname /= "" ->
             stringListCat(["Mobile Simulation B: ", Sname, "@", Hostname]);
         true ->
-%            "Mobile simulation B"
             stringListCat(["Mobile Simulation B: ", Hostname])
         end,
 
@@ -249,7 +256,6 @@ createFrameB(ServerB) ->
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     % Create MenuBar 1.
     % http://erlang.org/doc/man/wxMenuBar.html
-%    io:format("Calling wxMenuBar:new/0.~n", []),
     MenuBar1 = wxMenuBar:new(),
 
     % - - - - - - - - - - - - - - - - - -
@@ -278,8 +284,6 @@ createFrameB(ServerB) ->
     % This does override the wxMenuItem:new/2 setting for "text".
     wxMenuItem:setText(MenuItem1, "Menu Item 1"),
     wxMenuItem:setText(MenuItem2, "Menu Item 2"),
-    % Superfluous at this point.
-%    wxMenuItem:enable(MenuItem2, [{enable, true}]),
     wxMenuItem:setText(MenuItem3, "Menu Item 3"),
 
     % Add Quit item to Menu 1.
@@ -383,6 +387,10 @@ createFrameB(ServerB) ->
         {kind, ?wxITEM_CHECK}, {text, "Display list"}]),
     MenuItemTraceMouse = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_MOUSE},
         {kind, ?wxITEM_CHECK}, {text, "Mouse events"}]),
+    MenuItemTraceMotion = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_MOTION},
+        {kind, ?wxITEM_CHECK}, {text, "Motion events"}]),
+    MenuItemTraceCursor = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_CURSOR},
+        {kind, ?wxITEM_CHECK}, {text, "Cursor events"}]),
     MenuItemTraceWindow = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_WINDOW},
         {kind, ?wxITEM_CHECK}, {text, "Window events"}]),
     MenuItemTraceMenu = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_MENU},
@@ -393,6 +401,8 @@ createFrameB(ServerB) ->
     % Add menu items to the menu.
     wxMenu:append(Menu5, MenuItemTraceDmap),
     wxMenu:append(Menu5, MenuItemTraceMouse),
+    wxMenu:append(Menu5, MenuItemTraceMotion),
+    wxMenu:append(Menu5, MenuItemTraceCursor),
     wxMenu:append(Menu5, MenuItemTraceWindow),
     wxMenu:append(Menu5, MenuItemTraceMenu),
     wxMenu:append(Menu5, MenuItemTraceNode),
@@ -400,6 +410,8 @@ createFrameB(ServerB) ->
     % Show the defaults check/uncheck.
     wxMenuItem:check(MenuItemTraceDmap, [{check, ?TRACE_DMAP_DEFT}]),
     wxMenuItem:check(MenuItemTraceMouse, [{check, ?TRACE_MOUSE_DEFT}]),
+    wxMenuItem:check(MenuItemTraceMotion, [{check, ?TRACE_MOTION_DEFT}]),
+    wxMenuItem:check(MenuItemTraceCursor, [{check, ?TRACE_CURSOR_DEFT}]),
     wxMenuItem:check(MenuItemTraceWindow, [{check, ?TRACE_WINDOW_DEFT}]),
     wxMenuItem:check(MenuItemTraceMenu, [{check, ?TRACE_MENU_DEFT}]),
     wxMenuItem:check(MenuItemTraceNode, [{check, ?TRACE_NODE_DEFT}]),
@@ -572,7 +584,7 @@ createFrameB(ServerB) ->
     wxFrame:connect(FrameB, middle_up),
     wxFrame:connect(FrameB, right_down),
     wxFrame:connect(FrameB, right_up),
-%    wxFrame:connect(FrameB, motion),
+    wxFrame:connect(FrameB, motion),
     wxFrame:connect(FrameB, enter_window),
     wxFrame:connect(FrameB, leave_window),
     wxFrame:connect(FrameB, left_dclick),
@@ -581,7 +593,7 @@ createFrameB(ServerB) ->
     wxFrame:connect(FrameB, mousewheel),
 
     % wxMove
-%    wxFrame:connect(FrameB, move),
+    wxFrame:connect(FrameB, move),
 
     % wxNavigationKey
     wxFrame:connect(FrameB, navigation_key),
@@ -626,7 +638,7 @@ createFrameB(ServerB) ->
 
     % wxSetCursor
     % This generates a huge number of events!
-%    wxFrame:connect(FrameB, set_cursor),
+    wxFrame:connect(FrameB, set_cursor),
 
     % wxShow
     wxFrame:connect(FrameB, show),
@@ -917,6 +929,10 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                             maps:put(traceDmap, int_to_boolean(Cint), Vars);
                         ?MENU_ITEM_TRACE_MOUSE ->
                             maps:put(traceMouse, int_to_boolean(Cint), Vars);
+                        ?MENU_ITEM_TRACE_MOTION ->
+                            maps:put(traceMotion, int_to_boolean(Cint), Vars);
+                        ?MENU_ITEM_TRACE_CURSOR ->
+                            maps:put(traceCursor, int_to_boolean(Cint), Vars);
                         ?MENU_ITEM_TRACE_WINDOW ->
                             maps:put(traceWindow, int_to_boolean(Cint), Vars);
                         ?MENU_ITEM_TRACE_MENU ->
@@ -995,12 +1011,15 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                 end,
                 carry_on;
 
-            #wxMouse{type=TypeB, x=X, y=Y} ->
-                % Trace mouse events.
+            #wxMouse{type=TypeB, x=X, y=Y,
+                    leftDown=L, middleDown=M, rightDown=R, controlDown=C,
+                    shiftDown=S, altDown=A, metaDown=Meta, wheelRotation=Wrot,
+                    wheelDelta=Wdelta, linesPerAction=LPA} ->
                 TraceMouse = maps:get(traceMouse, Vars, ?TRACE_MOUSE_DEFT),
+                TraceMotion = maps:get(traceMotion, Vars, ?TRACE_MOTION_DEFT),
                 case TypeB of
                 motion ->
-                    if TraceMouse ->
+                    if TraceMotion ->
                         io:format("mouse motion: "
                             "X=~p, Y=~p~n", [X, Y]);
                     true -> ok
@@ -1008,13 +1027,17 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                 left_down ->
                     if TraceMouse ->
                         io:format("mouse left down: "
-                            "X=~p, Y=~p~n", [X, Y]);
+                            "X=~p, Y=~p, L=~p, M=~p, R=~p,~n C=~p, S=~p, A=~p"
+                            ", Meta=~p, Wrot=~p, Wdelta=~p, LPA=~p~n",
+                            [X, Y, L, M, R, C, S, A, Meta, Wrot, Wdelta, LPA]);
                     true -> ok
                     end;
                 left_up ->
                     if TraceMouse ->
                     io:format("mouse left up: "
-                        "X=~p, Y=~p~n", [X, Y]);
+                            "X=~p, Y=~p, L=~p, M=~p, R=~p,~n C=~p, S=~p, A=~p"
+                            ", Meta=~p, Wrot=~p, Wdelta=~p, LPA=~p~n",
+                            [X, Y, L, M, R, C, S, A, Meta, Wrot, Wdelta, LPA]);
                     true -> ok
                     end;
                 _Else ->
@@ -1069,6 +1092,24 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                     if TraceWindow ->
                         io:format("window paint event: unknown type=~p ",
                             [TypeB]);
+                    true -> ok
+                    end
+                end,
+                carry_on;
+
+            #wxSetCursor{type=TypeB, x=X, y=Y, cursor=Cursor} ->
+                TraceCursor = maps:get(traceCursor, Vars, ?TRACE_CURSOR_DEFT),
+                case TypeB of
+                set_cursor ->
+                    if TraceCursor ->
+                        io:format("set-cursor event: "
+                            "X=~p, Y=~p, cursor=~p~n", [X, Y, Cursor]);
+                    true -> ok
+                    end;
+                _Else ->
+                    if TraceCursor ->
+                    io:format("unknown set-cursor event: type=~p, "
+                        "X=~p, Y=~p, cursor=~p~n", [TypeB, X, Y, Cursor]);
                     true -> ok
                     end
                 end,
