@@ -254,15 +254,17 @@ listrev(L) ->
 % 29
 
 % In the if-clause for monthdays/2, the function is_div/2 can't be used.
-% test1.erl:201: call to local/imported function is_div/2 is illegal in guard
+% test1.erl:201: call to local/imported function is_div/2 is illegal in guard.
 % I don't know where this arbitrary-looking rule comes from.
-
+-define(hide_is_div_unused, true).
+-ifndef(hide_is_div_unused).
 is_div_unused(X, N) ->
     if is_float(N) andalso N > 0 ->
         false;
     true ->
         trunc(X/N) * N == X
     end.
+-endif.
 
 % An explanation is here:
 % http://erlang.org/doc/getting_started/seq_prog.html#id68896
