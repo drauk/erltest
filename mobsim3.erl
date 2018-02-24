@@ -43,8 +43,11 @@
     startMobileBsample1/1, startMobileBsample2/1]).
 
 % Miscellaneous.
-% -export([getSname/0, handle_event/2]).
 -export([getSname/0]).
+% -export([stringListCat/1]).         % Just to get rid of the "unused" warning.
+
+% Event handling.
+% -export([handle_event/2]).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Some constants for menu items.
@@ -126,10 +129,16 @@
 % See http://erlang.org/doc/man/unicode.html#characters_to_binary-1
 % Binaries, see http://erlang.org/doc/reference_manual/data_types.html#id65566
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% PS. Apparently the ++ operator concatenates lists (and strings) much better!
+% See http://erlang.org/doc/reference_manual/expressions.html#id83040
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+-define(hide_stringListCat, true).
+-ifndef(hide_stringListCat).
 stringListCat(L) when is_list(L) ->
     % Using separate lines makes debugging easier.
     L2 = unicode:characters_to_list(L),
     unicode:characters_to_binary(L2).
+-endif.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Convert integer 0 or 1 to boolean false or true.
@@ -228,9 +237,11 @@ createFrameB(ServerB) ->
     TitleText = if
         % See http://erlang.org/doc/reference_manual/expressions.html#id81948
         Sname /= "" ->
-            stringListCat(["Mobile Simulation B: ", Sname, "@", Hostname]);
+%            stringListCat(["Mobile Simulation B: ", Sname, "@", Hostname]);
+            "Mobile Simulation B: " ++ Sname ++ "@" ++ Hostname;
         true ->
-            stringListCat(["Mobile Simulation B: ", Hostname])
+%            stringListCat(["Mobile Simulation B: ", Hostname])
+            "Mobile Simulation B: " ++ Hostname
         end,
 
     % Create a frame on the X server.
@@ -781,7 +792,8 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
             end,
         % NOTE. Make a rough guess of best string location. Fix this later!
         wxDC:drawText(DCbuf,
-            stringListCat([PIDstring, " [", integer_to_list(Nevt), "]"]),
+%            stringListCat([PIDstring, " [", integer_to_list(Nevt), "]"]),
+            PIDstring ++ " [" ++ integer_to_list(Nevt) ++ "]",
             {Xnew + 3, Ynew + 3}),
         AccIn
         end,
@@ -1260,7 +1272,8 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
             % Status text at the bottom of the window.
             % See http://erlang.org/doc/man/wxFrame.html#setStatusText-2
             ok = wxFrame:setStatusText(FrameB,
-                stringListCat(["Status: N mobiles = ", StrNmobs]), []),
+%                stringListCat(["Status: N mobiles = ", StrNmobs]), []),
+                "Status: N mobiles = " ++ StrNmobs, []),
 
             % Trace the display-list.
             TraceDmap = maps:get(traceDmap, Vars, ?TRACE_DMAP_DEFT),
@@ -1295,7 +1308,8 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
             % Status text at the bottom of the window.
             % See http://erlang.org/doc/man/wxFrame.html#setStatusText-2
             ok = wxFrame:setStatusText(FrameB,
-                stringListCat(["Status: N mobiles = ", StrNmobs]), []),
+%                stringListCat(["Status: N mobiles = ", StrNmobs]), []),
+                "Status: N mobiles = " ++ StrNmobs, []),
 
             % Trace the display-list.
             TraceDmap = maps:get(traceDmap, Vars, ?TRACE_DMAP_DEFT),
