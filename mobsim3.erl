@@ -65,6 +65,7 @@
 -define(NODE_COLOUR_R, {255, 128, 128}).
 -define(NODE_COLOUR_G, {128, 255, 128}).
 -define(NODE_COLOUR_B, {128, 128, 255}).
+-define(NODE_COLOUR_DEFT, ?NODE_COLOUR_G).
 
 % - - - - - - - - - - - - - - - - - - -
 % Node shapes.
@@ -72,6 +73,8 @@
 -define(MENU_ITEM_SQUARE, 1021).
 -define(MENU_ITEM_HEXAGON, 1022).
 -define(MENU_ITEM_X, 1023).
+
+-define(NODE_SHAPE_DEFT, nodeShapeCircle).
 
 % - - - - - - - - - - - - - - - - - - -
 % Node sizes.
@@ -85,6 +88,7 @@
 -define(NODE_RAD2, 10).
 -define(NODE_RAD3, 20).
 -define(NODE_RAD4, 40).
+-define(NODE_RAD_DEFT, ?NODE_RAD1).
 
 % - - - - - - - - - - - - - - - - - - -
 % Trace options.
@@ -697,15 +701,43 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
 
     % Create the brush for the nodes, with default colour if not found.
     % http://erlang.org/doc/man/maps.html#get-3
-    ColNode = maps:get(nodeColour, Vars, ?NODE_COLOUR_G),
+    ColNode = maps:get(nodeColour, Vars, ?NODE_COLOUR_DEFT),
     BrushCircle = wxBrush:new(ColNode),
 
-    % Node shape.
-    NodeShape = maps:get(nodeShape, Vars, nodeShapeCircle),
+    % Node shape and radius.
+    NodeShape = maps:get(nodeShape, Vars, ?NODE_SHAPE_DEFT),
+    NodeRadius = maps:get(nodeRadius, Vars, ?NODE_RAD_DEFT),
 
-    % Node radius.
-    NodeRadius = maps:get(nodeRadius, Vars, ?NODE_RAD1),
+    % Pre-compute hexagon dimensions to improve efficiency. (?)
+    case NodeShape of
+        nodeShapeHexagon ->
+            Cos60 = 0.5,
+            Sin60 = math:sqrt(0.75),
+            % Note: math:floor() returns float, floor() returns integer.
+%                Rcos60 = floor(NodeRadius * Cos60 + 0.5),
+%                Rsin60 = floor(NodeRadius * Sin60 + 0.5),
+            Rcos60 = ceil(NodeRadius * Cos60 + 0.5) - 1,
+            Rsin60 = ceil(NodeRadius * Sin60 + 0.5) - 1;
+        _ ->
+            % http://erlang.org/doc/reference_manual/expressions.html#id80984
+            % If I don't define Rcos60 and Rsin60 here, I get errors.
+            % mobsim3.erl:747: variable 'Rcos60' unsafe in 'case' (line 708)
+            % mobsim3.erl:747: variable 'Rsin60' unsafe in 'case' (line 708)
+            % mobsim3.erl:748: variable 'Rcos60' unsafe in 'case' (line 708)
+            % mobsim3.erl:748: variable 'Rsin60' unsafe in 'case' (line 708)
+            % mobsim3.erl:750: variable 'Rcos60' unsafe in 'case' (line 708)
+            % mobsim3.erl:750: variable 'Rsin60' unsafe in 'case' (line 708)
+            % mobsim3.erl:751: variable 'Rcos60' unsafe in 'case' (line 708)
+            % mobsim3.erl:751: variable 'Rsin60' unsafe in 'case' (line 708)
+            % If I do define Cos60 and Sin60 here, I get this.
+            % mobsim3.erl:718: Warning: variable 'Cos60' is unused
+            % mobsim3.erl:719: Warning: variable 'Sin60' is unused
+            % The compiler is too clever by half!
+            Rcos60 = 0.0,
+            Rsin60 = 0.0
+        end,
 
+    % - - - - - - - - - - - - - - - - - - -
     wxBufferedDC:setBackground(DCbuf, BrushBG),
     wxBufferedDC:clear(DCbuf),
 
@@ -715,9 +747,9 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
     % http://erlang.org/doc/man/maps.html#fold-3
     % http://erlang.org/doc/man/lists.html#foreach-2
     FnD = fun(P, { Xold, Yold, Xnew, Ynew, Nevt }, AccIn) ->
-%        PIDstring = pid_to_list(P),
-%        PIDstring = pidNoBrackets(P),
-        PIDstring = pidComponent(P, 2),
+%        PIDstring = pid_to_list(P),          % Example: "<18000.879.0>".
+%        PIDstring = pidNoBrackets(P),        % Example: "18000.879.0".
+        PIDstring = pidComponent(P, 2),     % Example: "879".
         wxDC:drawLine(DCbuf, {Xold, Yold}, {Xnew, Ynew}),
         case NodeShape of
             nodeShapeCircle ->
@@ -731,11 +763,6 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
                 wxDC:drawPoint(DCbuf, {Xnew, Ynew});
             nodeShapeHexagon ->
                 % http://erlang.org/doc/man/wxDC.html#drawPolygon-2
-                Cos60 = 0.5,
-                Sin60 = math:sqrt(0.75),
-                % Note: math:floor() returns float, floor() returns integer.
-                Rcos60 = floor(NodeRadius * Cos60 + 0.5),
-                Rsin60 = floor(NodeRadius * Sin60 + 0.5),
                 Pts = [{Xnew - NodeRadius, Ynew},
                    {Xnew - Rcos60, Ynew + Rsin60},
                    {Xnew + Rcos60, Ynew + Rsin60},
