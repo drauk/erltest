@@ -1,6 +1,6 @@
-% src/erlang/mobsim2.erl   2018-2-24   Alan U. Kennington.
+% src/erlang/mobsim2.erl   2018-2-26   Alan U. Kennington.
 % This module will simulate a mobile network using wxErlang.
-% Work In Progress!!! (See mobsim3.erl for further development.)
+% (See mobsim3.erl for further development.)
 % For wx: http://erlang.org/doc/apps/wx/index.html
 % See also file: /usr/local/lib/erlang/lib/wx-1.8.3/examples/simple/hello.erl
 
