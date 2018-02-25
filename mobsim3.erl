@@ -1,4 +1,4 @@
-% src/erlang/mobsim3.erl   2018-2-25   Alan U. Kennington.
+% src/erlang/mobsim3.erl   2018-2-26   Alan U. Kennington.
 % This module will simulate a mobile network using wxErlang.
 % Work In Progress!!!
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -27,6 +27,10 @@
 %
 % (clientD@hostB)4> mobsim3:startMobileBsample2(serverD@hostA).
 %
+% For nodes with approximately twice as long life, try this.
+%
+% (clientD@hostB)5> mobsim3:startMobileBsample3(serverD@hostA).
+%
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 -module(mobsim3).
@@ -40,7 +44,8 @@
 
 % Client process.
 -export([startMobileB/1, startMobileB/4, procMobSimB/4,
-    startMobileBsample1/1, startMobileBsample2/1, startMobileBsample3/1]).
+    startMobileBsample1/1, startMobileBsample2/1,
+    startMobileBsample3/1, startMobileBsample4/1]).
 
 % Miscellaneous.
 -export([getSname/0]).
@@ -100,12 +105,12 @@
 
 % - - - - - - - - - - - - - - - - - - -
 % Node shapes.
--define(MENU_ITEM_CIRCLE, 1020).        % Default.
+-define(MENU_ITEM_CIRCLE, 1020).
 -define(MENU_ITEM_SQUARE, 1021).
 -define(MENU_ITEM_HEXAGON, 1022).
 -define(MENU_ITEM_X, 1023).
 
--define(NODE_SHAPE_DEFT, nodeShapeCircle).
+-define(NODE_SHAPE_DEFT, nodeShapeHexagon).
 
 % - - - - - - - - - - - - - - - - - - -
 % Node sizes.
@@ -119,7 +124,7 @@
 -define(NODE_RAD2, 10).
 -define(NODE_RAD3, 20).
 -define(NODE_RAD4, 40).
--define(NODE_RAD_DEFT, ?NODE_RAD1).
+-define(NODE_RAD_DEFT, ?NODE_RAD2).
 
 % - - - - - - - - - - - - - - - - - - -
 % Trace options.
@@ -392,7 +397,10 @@ createFrameB(ServerB) ->
     wxMenu:append(Menu3, MenuItemX),
 
     % Checking the radio button does have an effect after it is appended.
-    wxMenuItem:check(MenuItemCircle, [{check, true}]),
+    % NOTE. Must be synchronized with NODE_SHAPE_DEFT.
+    % This should be automated!
+    % Maybe could use a map from node shape to menu item???
+    wxMenuItem:check(MenuItemHexagon, [{check, true}]),
 
     % - - - - - - - - - - - - - - - - - -
     % Create Menu 4.
@@ -419,7 +427,9 @@ createFrameB(ServerB) ->
     wxMenu:append(Menu4, MenuItemRad4),
 
     % Checking the radio button does have an effect after it is appended.
-    wxMenuItem:check(MenuItemRad1, [{check, true}]),
+    % NOTE. Must be synchronized with NODE_RAD_DEFT.
+    % This should be automated!
+    wxMenuItem:check(MenuItemRad2, [{check, true}]),
 
     % - - - - - - - - - - - - - - - - - -
     % Menu 5.
@@ -878,7 +888,7 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
 %
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Dmap is a map containing the current display-list, i.e. list of live nodes.
-% Vars is a map containing "global variables", which do not exist in Erlang!!
+% Vars is a map containing "local variables", which do not exist in Erlang!!
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % handleWindowB(FrameB, DCclient, Dlist) when is_list(Dlist) ->
 handleWindowB(FrameB, DCclient, Dmap, Vars)
@@ -1275,7 +1285,8 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                     io:format("~p wx event handler normal exit~n", [self()]),
                     ok;
                 is_map(CarryOn) ->
-                    io:format("~p global variable changed by event handler~n",
+                    io:format("~p"
+                        " \"local variable\" changed by event handler~n",
                         [self()]),
                     handleWindowB(FrameB, DCclient, Dmap, CarryOn);
                 true ->
@@ -1461,7 +1472,6 @@ moveBounce(X, Y, U, V) ->
 procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y, U, V})
         when is_integer(Ntimes)
         andalso is_number(Tsleep) andalso Tsleep >= 0 ->
-%    Xnew = X + U, Ynew = Y + V,
     { Xnew, Ynew, Unew, Vnew } = moveBounce(X, Y, U, V),
     if
         Ntimes > 0 ->
@@ -1600,6 +1610,19 @@ startMobileBsample3(PIDserver) ->
     startMobileB(PIDserver, 18, 1450, {950, 250, -10, 30}),
     startMobileB(PIDserver, 17, 3650, {800, 650, 30, -40}),
     startMobileB(PIDserver, 15, 3350, {1100, 450, -30, 40}).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Some mobile device processes, just for 4 times as much amusement.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+startMobileBsample4(PIDserver) ->
+    Tgap = 5500,
+    startMobileBsample3(PIDserver),
+    timer:sleep(Tgap),
+    startMobileBsample3(PIDserver),
+    timer:sleep(Tgap),
+    startMobileBsample3(PIDserver),
+    timer:sleep(Tgap),
+    startMobileBsample3(PIDserver).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Function which is exported to the general event handler module.
