@@ -50,6 +50,11 @@
 % -export([handle_event/2]).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Default initial Frame position and size.
+-define(FRAME_POS_INIT, {0, 0}).
+-define(FRAME_SIZE_INIT, {1200, 800}).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Some constants for menu items.
 % Must avoid range 5000 to 6000, and probably below about 120 also.
 % There should be a systematic way to allocate these ID values.
@@ -116,6 +121,9 @@
 -define(MENU_ITEM_TRACE_NODE, 1046).    % Default is on.
 -define(TRACE_NODE_DEFT, true).
 
+% The value "true" is not used. Always define this for commenting out blocks.
+-define(hideUnused, true).
+
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Concatenate a list of strings.
 % This should be called string:join/1, but string:* is deprecated.
@@ -132,8 +140,7 @@
 % PS. Apparently the ++ operator concatenates lists (and strings) much better!
 % See http://erlang.org/doc/reference_manual/expressions.html#id83040
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
--define(hide_stringListCat, true).
--ifndef(hide_stringListCat).
+-ifndef(hideUnused).
 stringListCat(L) when is_list(L) ->
     % Using separate lines makes debugging easier.
     L2 = unicode:characters_to_list(L),
@@ -250,7 +257,7 @@ createFrameB(ServerB) ->
     % http://erlang.org/doc/man/wxFrame.html
     % http://docs.wxwidgets.org/2.8.12/wx_wxframe.html#wxframewxframe
     FrameB = wxFrame:new(ServerB, -1, TitleText,
-        [{pos, {0, 0}}, {size, {1200, 800}}]),
+        [{pos, ?FRAME_POS_INIT}, {size, ?FRAME_SIZE_INIT}]),
     % Carriage return. Get the shell text cursor back to the left of the line.
     io:format("~n", []),
 
@@ -1390,23 +1397,29 @@ startWindowB() ->
 % A mobile device client process.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y, U, V})
-        when is_integer(Ntimes) andalso Ntimes > 0
+        when is_integer(Ntimes)
         andalso is_number(Tsleep) andalso Tsleep >= 0 ->
     Xnew = X + U, Ynew = Y + V,
-    io:format("procMobSimB ~p sending pos ~p to ~p: ~p~n",
-        [self(), Ntimes, PIDserver, {X, Y, Xnew, Ynew}]),
+    if
+        Ntimes > 0 ->
+            Msg = pos;
+        true ->
+            Msg = fin
+        end,
 
-    % Send the message.
+    % Send a message.
+    io:format("procMobSimB ~p sending ~p ~p to ~p: ~p~n",
+        [self(), Msg, Ntimes, PIDserver, {X, Y, Xnew, Ynew}]),
     { pidMobSimWindowB, PIDserver } !
-        { self(), pos, Ntimes, {X, Y, Xnew, Ynew} },
+        {self(), Msg, Ntimes, {X, Y, Xnew, Ynew}},
 
     % Wait for a response which might not arrive.
     Tout = 1000,
     io:format("procMobSimB ~p waiting for response [~p]~n", [self(), Ntimes]),
     receive
-        { PIDserverRX, pos_resp, NtimesRX } ->
-            io:format("procMobSimB ~p received pos_resp response ~p from ~p~n",
-                [self(), NtimesRX, PIDserverRX])
+        { PIDserverRX, Resp, NtimesRX } ->
+            io:format("procMobSimB ~p received ~p response ~p from ~p~n",
+                [self(), Resp, NtimesRX, PIDserverRX])
     after
         % Time-out handler.
         Tout ->
@@ -1414,40 +1427,16 @@ procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y, U, V})
                 [self(), Tout])
     end,
 
-    % Wait for a while before sending next message.
-    io:format("procMobSimB ~p sleep ~p~n", [self(), Tsleep]),
-    timer:sleep(Tsleep),
-    procMobSimB(PIDserver, Ntimes - 1, Tsleep, {Xnew, Ynew, U, V});
-
-% The last wake-up before terminating.
-procMobSimB(PIDserver, Ntimes, _Tsleep, {X, Y, U, V})
-        when is_integer(Ntimes) andalso Ntimes =< 0
-%        andalso is_number(Tsleep) andalso Tsleep >= 0 ->
-        ->
-    Xnew = X + U, Ynew = Y + V,
-    io:format("procMobSimB ~p sending fin to server ~p [~p]~n",
-        [self(), PIDserver, Ntimes]),
-
-    % Send the message.
-    { pidMobSimWindowB, PIDserver } !
-        { self(), fin, Ntimes, {X, Y, Xnew, Ynew}},
-
-    % Wait for a response which might not arrive.
-    Tout = 1000,
-    io:format("procMobSimB ~p waiting for response [~p]~n", [self(), Ntimes]),
-    receive
-        { PIDserverRX, fin_resp, NtimesRX } ->
-            io:format("procMobSimB ~p received fin_resp response ~p from ~p~n",
-                [self(), NtimesRX, PIDserverRX])
-    after
-        % Time-out handler.
-        Tout ->
-            io:format("procMobSimB ~p time-out after ~p mS~n",
-                [self(), Tout])
-    end,
-
-%    timer:sleep(Tsleep),
-    io:format("procMobSimB ~p END~n", [self()]).
+    % The end-game.
+    if Ntimes =< 0 ->
+        io:format("procMobSimB ~p END~n", [self()]);
+    true ->
+        % Wait for a while before sending next message.
+        io:format("procMobSimB ~p sleep ~p~n", [self(), Tsleep]),
+        timer:sleep(Tsleep),
+        % Loop and do it all again.
+        procMobSimB(PIDserver, Ntimes - 1, Tsleep, {Xnew, Ynew, U, V})
+    end.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Entry point for this module.
