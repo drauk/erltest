@@ -1,4 +1,4 @@
-% src/erlang/test1.erl   2018-2-24   Alan U. Kennington.
+% src/erlang/test1.erl   2018-2-25   Alan U. Kennington.
 % Test run of erlang programming language to see what it can do.
 % Based on http://erlang.org/doc/getting_started/seq_prog.html
 
@@ -172,7 +172,7 @@ blendcol(S, D, A) when A > 0.0 ->
         blue := blue_blend(S,D)/A,
         alpha := A
         };
-blendcol(_, D, _) ->
+blendcol(_S, D, _A) ->
     D#{ red := 0.0, green := 0.0, blue := 0.0, alpha := 0.0 }.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -215,7 +215,7 @@ listmax([X | L], Y) when X > Y ->
 % It's very lucky that this is not a fatal error as it always is in Golang.
 % Erlang would be totally unusable if unused variables were forbidden.
 % listmax([Xunused | L], Y) ->
-listmax([_ | L], Y) ->
+listmax([_X | L], Y) ->
     listmax(L, Y).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

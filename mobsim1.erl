@@ -1,4 +1,4 @@
-% src/erlang/mobsim1.erl   2018-2-19   Alan U. Kennington.
+% src/erlang/mobsim1.erl   2018-2-25   Alan U. Kennington.
 % This module tests feasibility of simulating a mobile network using wxErlang.
 % Please see mobsim2.erl for further development.
 % For wx: http://erlang.org/doc/apps/wx/index.html
@@ -523,7 +523,7 @@ procMobSimA(Ntimes, PIDserver, Tsleep) when Ntimes > 0 ->
     io:format("procMobSimA ~p sleep ~p~n", [self(), Tsleep]),
     timer:sleep(Tsleep),
     procMobSimA(Ntimes - 1, PIDserver, Tsleep);
-procMobSimA(Ntimes, PIDserver, _) when Ntimes =< 0 ->
+procMobSimA(Ntimes, PIDserver, _Tsleep) when Ntimes =< 0 ->
     io:format("procMobSimA ~p sending fin to server ~p [~p]~n",
         [self(), PIDserver, Ntimes]),
     { pidMobSimWindowA, PIDserver } ! { fin, self(), Ntimes },

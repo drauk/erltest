@@ -1,4 +1,4 @@
-% src/erlang/proc1.erl   2018-2-24   Alan U. Kennington.
+% src/erlang/proc1.erl   2018-2-25   Alan U. Kennington.
 % Test run of erlang programming language "processes" (i.e. threads).
 % Based on: http://erlang.org/doc/getting_started/conc_prog.html
 % For sleep/1: http://erlang.org/doc/man/timer.html#sleep-1
@@ -95,7 +95,7 @@ procBclient(Ntimes, PIDserver, Tsleep) when Ntimes > 0 ->
     end,
     timer:sleep(Tsleep),
     procBclient(Ntimes - 1, PIDserver, Tsleep);
-procBclient(Ntimes, PIDserver, _) when Ntimes =< 0 ->
+procBclient(Ntimes, PIDserver, _Tsleep) when Ntimes =< 0 ->
     io:format("~p ~p~n", ["procBclient finishing", Ntimes]),
     PIDserver ! fin.
 
@@ -153,7 +153,7 @@ procCclient(Ntimes, PIDserver, Tsleep) when Ntimes > 0 ->
     io:format("procCclient ~p sleep ~p~n", [self(), Tsleep]),
     timer:sleep(Tsleep),
     procCclient(Ntimes - 1, PIDserver, Tsleep);
-procCclient(Ntimes, PIDserver, _) when Ntimes =< 0 ->
+procCclient(Ntimes, PIDserver, _Tsleep) when Ntimes =< 0 ->
     io:format("procCclient ~p sending fin to server ~p [~p]~n",
         [self(), PIDserver, Ntimes]),
     PIDserver ! { fin, self(), Ntimes },
@@ -249,7 +249,7 @@ procDclient(Ntimes, PIDserver, Tsleep) when Ntimes > 0 ->
     io:format("procDclient ~p sleep ~p~n", [self(), Tsleep]),
     timer:sleep(Tsleep),
     procDclient(Ntimes - 1, PIDserver, Tsleep);
-procDclient(Ntimes, PIDserver, _) when Ntimes =< 0 ->
+procDclient(Ntimes, PIDserver, _Tsleep) when Ntimes =< 0 ->
     io:format("procDclient ~p sending fin to server ~p [~p]~n",
         [self(), PIDserver, Ntimes]),
     { pidDserver, PIDserver } ! { fin, self(), Ntimes },

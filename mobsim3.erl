@@ -1,4 +1,4 @@
-% src/erlang/mobsim3.erl   2018-2-24   Alan U. Kennington.
+% src/erlang/mobsim3.erl   2018-2-25   Alan U. Kennington.
 % This module will simulate a mobile network using wxErlang.
 % Work In Progress!!!
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -152,7 +152,7 @@ int_to_boolean(Int, Default)
             false;
         1 ->
             true;
-        _ ->
+        _Else ->
             Default
     end.
 
@@ -729,7 +729,7 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
 %                Rsin60 = floor(NodeRadius * Sin60 + 0.5),
             Rcos60 = ceil(NodeRadius * Cos60 + 0.5) - 1,
             Rsin60 = ceil(NodeRadius * Sin60 + 0.5) - 1;
-        _ ->
+        _Else ->
             % http://erlang.org/doc/reference_manual/expressions.html#id80984
             % If I don't define Rcos60 and Rsin60 here, I get errors.
             % mobsim3.erl:747: variable 'Rcos60' unsafe in 'case' (line 708)
@@ -886,20 +886,18 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
 
             #wxActivate{type=TypeB, active=Ac} ->
                 TraceWindow = maps:get(traceWindow, Vars, ?TRACE_WINDOW_DEFT),
-                if
-                    TraceWindow ->
-                        case TypeB of
-                        activate ->
-                            io:format("window activate: active=~p~n", [Ac]);
-                        activate_app ->
-                            io:format("window activate app: active=~p~n", [Ac]);
-                        hibernate ->
-                            io:format("window hibernate: active=~p~n", [Ac]);
-                        _Else ->
-                            ok
-                        end;
-                    true ->
+                if TraceWindow ->
+                    case TypeB of
+                    activate ->
+                        io:format("window activate: active=~p~n", [Ac]);
+                    activate_app ->
+                        io:format("window activate app: active=~p~n", [Ac]);
+                    hibernate ->
+                        io:format("window hibernate: active=~p~n", [Ac]);
+                    _Else ->
                         ok
+                    end;
+                true -> ok
                 end,
                 carry_on;
 
@@ -1091,20 +1089,18 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
             #wxMove{type=TypeB, pos={Ws, Hs}, rect={Xr, Yr, Wr, Hr}} ->
                 % Trace window events.
                 TraceWindow = maps:get(traceWindow, Vars, ?TRACE_WINDOW_DEFT),
-                if
-                    TraceWindow ->
-                        case TypeB of
-                        move ->
-                            io:format("window move: "
-                                "pos=[~p, ~p], rect: X=~p, Y=~p, W=~p, H=~p~n",
-                                [Ws, Hs, Xr, Yr, Wr, Hr]);
-                        _Else ->
-                            io:format("window move: unknown type = ~p: "
-                                "pos=[~p, ~p], rect: X=~p, Y=~p, W=~p, H=~p~n",
-                                [TypeB, Ws, Hs, Xr, Yr, Wr, Hr])
-                        end;
-                    true ->
-                        ok
+                if TraceWindow ->
+                    case TypeB of
+                    move ->
+                        io:format("window move: "
+                            "pos=[~p, ~p], rect: X=~p, Y=~p, W=~p, H=~p~n",
+                            [Ws, Hs, Xr, Yr, Wr, Hr]);
+                    _Else ->
+                        io:format("window move: unknown type = ~p: "
+                            "pos=[~p, ~p], rect: X=~p, Y=~p, W=~p, H=~p~n",
+                            [TypeB, Ws, Hs, Xr, Yr, Wr, Hr])
+                    end;
+                true -> ok
                 end,
                 carry_on;
 
@@ -1424,7 +1420,7 @@ procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y, U, V})
     procMobSimB(PIDserver, Ntimes - 1, Tsleep, {Xnew, Ynew, U, V});
 
 % The last wake-up before terminating.
-procMobSimB(PIDserver, Ntimes, _, {X, Y, U, V})
+procMobSimB(PIDserver, Ntimes, _Tsleep, {X, Y, U, V})
         when is_integer(Ntimes) andalso Ntimes =< 0
 %        andalso is_number(Tsleep) andalso Tsleep >= 0 ->
         ->
