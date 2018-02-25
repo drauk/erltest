@@ -268,7 +268,7 @@ createFrameB(ServerB) ->
     % Carriage return. Get the shell text cursor back to the left of the line.
 
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    % Create MenuBar 1.
+    % Create MenuBar.
     % http://erlang.org/doc/man/wxMenuBar.html
     MenuBar1 = wxMenuBar:new(),
 
@@ -277,7 +277,7 @@ createFrameB(ServerB) ->
     % http://erlang.org/doc/man/wxMenu.html
     Menu1 = wxMenu:new([]),
 
-    % Add Menu 2 to the MenuBar.
+    % Add Menu to MenuBar.
     wxMenuBar:append(MenuBar1, Menu1, "Menu 1"),
 
     % Create some menu items.
@@ -300,7 +300,7 @@ createFrameB(ServerB) ->
     wxMenuItem:setText(MenuItem2, "Menu Item 2"),
     wxMenuItem:setText(MenuItem3, "Menu Item 3"),
 
-    % Add Quit item to Menu 1.
+    % Add Quit item to Menu.
     wxMenu:appendSeparator(Menu1),
     % Standard events IDs: http://docs.wxwidgets.org/2.8.12/wx_stdevtid.html
     % Avoid the range 5000 to 6000.
@@ -325,7 +325,7 @@ createFrameB(ServerB) ->
     % This has no effect here.
 %    wxMenuItem:check(MenuItemG, [{check, true}]),
 
-    % Add menu items to Menu 1.
+    % Add menu items to menu.
     wxMenu:append(Menu2, MenuItemR),
     wxMenu:append(Menu2, MenuItemG),
     wxMenu:append(Menu2, MenuItemB),
