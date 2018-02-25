@@ -40,7 +40,7 @@
 
 % Client process.
 -export([startMobileB/1, startMobileB/4, procMobSimB/4,
-    startMobileBsample1/1, startMobileBsample2/1]).
+    startMobileBsample1/1, startMobileBsample2/1, startMobileBsample3/1]).
 
 % Miscellaneous.
 -export([getSname/0]).
@@ -51,8 +51,31 @@
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Default initial Frame position and size.
--define(FRAME_POS_INIT, {0, 0}).
--define(FRAME_SIZE_INIT, {1200, 800}).
+-define(FRAME_POS_X, 0).
+-define(FRAME_POS_Y, 0).
+-define(FRAME_POS_INIT, {?FRAME_POS_X, ?FRAME_POS_Y}).
+
+-define(FRAME_SIZE_W, 1200).
+-define(FRAME_SIZE_H, 800).
+-define(FRAME_SIZE_INIT, {?FRAME_SIZE_W, ?FRAME_SIZE_H}).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% The arena of action for the mobile nodes.
+-define(ARENA_INDENT, 2).
+-define(ARENA_POS_X, ?ARENA_INDENT).
+-define(ARENA_POS_Y, ?ARENA_INDENT).
+-define(ARENA_POS_INIT, {?ARENA_POS_X, ?ARENA_POS_Y}).
+
+% NOTE: Must also take into account various panels!
+-define(ARENA_SIZE_H_PANEL, 53).    % This is a fudge!
+-define(ARENA_SIZE_W, (?FRAME_SIZE_W - 1 - ?ARENA_INDENT)).
+-define(ARENA_SIZE_H,
+    (?FRAME_SIZE_H - 1 - ?ARENA_INDENT - ?ARENA_SIZE_H_PANEL)).
+-define(ARENA_SIZE_INIT, {?ARENA_SIZE_W, ?ARENA_SIZE_H}).
+-define(ARENA_POS_Xmax, (?ARENA_POS_X + ?ARENA_SIZE_W - 1)).
+-define(ARENA_POS_Ymax, (?ARENA_POS_Y + ?ARENA_SIZE_H - 1)).
+
+-define(ARENA_BDY_COLOUR, {255, 255, 255}).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Some constants for menu items.
@@ -714,8 +737,11 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
     % http://docs.wxwidgets.org/3.0/classwx_buffered_d_c.html
     DCbuf = wxBufferedDC:new(DCclient),
 
-    % Create a white brush.
+    % Create a white brush for the background.
     BrushBG = wxBrush:new({255, 255, 255}),
+
+    % Create a brush for the Arena of Action.
+    BrushArena = wxBrush:new(?ARENA_BDY_COLOUR),
 
     % Create the brush for the nodes, with default colour if not found.
     % http://erlang.org/doc/man/maps.html#get-3
@@ -759,6 +785,11 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
     wxBufferedDC:setBackground(DCbuf, BrushBG),
     wxBufferedDC:clear(DCbuf),
 
+    % Draw the Arena boundary.
+    wxBufferedDC:setBrush(DCbuf, BrushArena),
+    wxDC:drawRectangle(DCbuf, ?ARENA_POS_INIT, ?ARENA_SIZE_INIT),
+
+    % Draw the nodes.
     wxBufferedDC:setBrush(DCbuf, BrushCircle),
 
     % I really want maps:foreach/2 here, but it doesn't exist.
@@ -806,7 +837,9 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
         end,
     maps:fold(FnD, 0, Dmap),
 
+    % Destroy the brushes.
     wxBrush:destroy(BrushCircle),
+    wxBrush:destroy(BrushArena),
     wxBrush:destroy(BrushBG),
 
     % Destroying the BufferedDC transfers the buffer to the ClientDC.
@@ -1394,12 +1427,42 @@ startWindowB() ->
 
 %==============================================================================
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Compute the new location after bouncing off the walls of the arena.
+% This does not do all possible reflections, but it's good enough here.
+% Assumes at most one X-reflection and one Y-reflection.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+moveBounce(X, Y, U, V) ->
+    % Move the node.
+    X0 = X + U, Y0 = Y + V,
+
+    % Do the X-reflections. (Try to keep sub-expressions in range.)
+    { X1, Y1, U1, V1 } = if
+        X0 < ?ARENA_POS_X ->
+            { ?ARENA_POS_X + (?ARENA_POS_X - X0), Y0, -U, V };
+        X0 > ?ARENA_POS_Xmax ->
+            { ?ARENA_POS_Xmax - (X0 - ?ARENA_POS_Xmax), Y0, -U, V };
+        true ->
+            { X0, Y0, U, V }
+        end,
+
+    % Do the Y-reflections.
+    if
+        Y1 < ?ARENA_POS_Y ->
+            { X1, ?ARENA_POS_Y + (?ARENA_POS_Y - Y1), U1, -V1 };
+        Y1 > ?ARENA_POS_Ymax ->
+            { X1, ?ARENA_POS_Ymax - (Y1 - ?ARENA_POS_Ymax), U1, -V1 };
+        true ->
+            { X1, Y1, U1, V1 }
+    end.
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % A mobile device client process.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y, U, V})
         when is_integer(Ntimes)
         andalso is_number(Tsleep) andalso Tsleep >= 0 ->
-    Xnew = X + U, Ynew = Y + V,
+%    Xnew = X + U, Ynew = Y + V,
+    { Xnew, Ynew, Unew, Vnew } = moveBounce(X, Y, U, V),
     if
         Ntimes > 0 ->
             Msg = pos;
@@ -1435,7 +1498,7 @@ procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y, U, V})
         io:format("procMobSimB ~p sleep ~p~n", [self(), Tsleep]),
         timer:sleep(Tsleep),
         % Loop and do it all again.
-        procMobSimB(PIDserver, Ntimes - 1, Tsleep, {Xnew, Ynew, U, V})
+        procMobSimB(PIDserver, Ntimes - 1, Tsleep, {Xnew, Ynew, Unew, Vnew})
     end.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1517,6 +1580,26 @@ startMobileBsample2(PIDserver) ->
     startMobileBsample1(PIDserver),
     timer:sleep(Tgap),
     startMobileBsample1(PIDserver).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Some mobile device processes, just for amusement.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+startMobileBsample3(PIDserver) ->
+    startMobileB(PIDserver, 18, 1000, {550, 50, -10, 30}),
+    startMobileB(PIDserver, 16, 1500, {600, 50, -10, 30}),
+    startMobileB(PIDserver, 14, 2000, {100, 350, 30, -40}),
+    startMobileB(PIDserver, 15, 2500, {150, 50, 40, 30}),
+    startMobileB(PIDserver, 18, 1250, {450, 50, -10, 30}),
+    startMobileB(PIDserver, 13, 3500, {400, 250, 30, -40}),
+    startMobileB(PIDserver, 15, 3000, {150, 200, -30, 40}),
+
+    startMobileB(PIDserver, 18, 1150, {750, 50, -10, 30}),
+    startMobileB(PIDserver, 16, 1600, {600, 550, -10, 30}),
+    startMobileB(PIDserver, 14, 2300, {600, 350, 30, -40}),
+    startMobileB(PIDserver, 16, 2800, {150, 650, 40, 30}),
+    startMobileB(PIDserver, 18, 1450, {950, 250, -10, 30}),
+    startMobileB(PIDserver, 17, 3650, {800, 650, 30, -40}),
+    startMobileB(PIDserver, 15, 3350, {1100, 450, -30, 40}).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Function which is exported to the general event handler module.
