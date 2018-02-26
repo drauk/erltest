@@ -108,8 +108,9 @@
 % Node shapes.
 -define(MENU_ITEM_CIRCLE, 1020).
 -define(MENU_ITEM_SQUARE, 1021).
--define(MENU_ITEM_HEXAGON, 1022).
--define(MENU_ITEM_X, 1023).
+-define(MENU_ITEM_PENTAGON, 1022).
+-define(MENU_ITEM_HEXAGON, 1023).
+-define(MENU_ITEM_X, 1024).
 
 -define(NODE_SHAPE_DEFT, nodeShapeHexagon).
 
@@ -389,6 +390,8 @@ createFrameB(ServerB) ->
         {kind, ?wxITEM_RADIO}, {text, "Circle"}]) },
     { nodeShapeSquare, wxMenuItem:new([{id, ?MENU_ITEM_SQUARE},
         {kind, ?wxITEM_RADIO}, {text, "Square"}]) },
+    { nodeShapePentagon, wxMenuItem:new([{id, ?MENU_ITEM_PENTAGON},
+        {kind, ?wxITEM_RADIO}, {text, "Pentagon"}]) },
     { nodeShapeHexagon, wxMenuItem:new([{id, ?MENU_ITEM_HEXAGON},
         {kind, ?wxITEM_RADIO}, {text, "Hexagon"}]) },
     { nodeShapeX, wxMenuItem:new([{id, ?MENU_ITEM_X},
@@ -768,16 +771,37 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
     NodeShape = maps:get(nodeShape, Vars, ?NODE_SHAPE_DEFT),
     NodeRadius = maps:get(nodeRadius, Vars, ?NODE_RAD_DEFT),
 
-    % Pre-compute hexagon dimensions to improve efficiency. (?)
+    % Pre-compute pentagon/hexagon dimensions to improve efficiency. (?)
     case NodeShape of
+        nodeShapePentagon ->
+            Cos72 = (math:sqrt(5.0) - 1.0)/4.0,
+            Sin72 = math:sqrt(1.0 - Cos72 * Cos72),
+            Cos36 = Sin72 * Sin72 * 2 - 1,
+            Sin36 = Cos72 * Sin72 * 2,
+
+            Rcos36 = ceil(NodeRadius * Cos36 + 0.5) - 1,
+            Rsin36 = ceil(NodeRadius * Sin36 + 0.5) - 1,
+            Rcos72 = ceil(NodeRadius * Cos72 + 0.5) - 1,
+            Rsin72 = ceil(NodeRadius * Sin72 + 0.5) - 1,
+
+            % Keep the compiler happy.
+            Rcos60 = 0.0,
+            Rsin60 = 0.0;
         nodeShapeHexagon ->
             Cos60 = 0.5,
             Sin60 = math:sqrt(0.75),
+
             % Note: math:floor() returns float, floor() returns integer.
 %            Rcos60 = floor(NodeRadius * Cos60 + 0.5),
 %            Rsin60 = floor(NodeRadius * Sin60 + 0.5),
             Rcos60 = ceil(NodeRadius * Cos60 + 0.5) - 1,
-            Rsin60 = ceil(NodeRadius * Sin60 + 0.5) - 1;
+            Rsin60 = ceil(NodeRadius * Sin60 + 0.5) - 1,
+
+            % Keep the compiler happy.
+            Rcos36 = 0.0,
+            Rsin36 = 0.0,
+            Rcos72 = 0.0,
+            Rsin72 = 0.0;
         _Else ->
             % http://erlang.org/doc/reference_manual/expressions.html#id80984
             % If I don't define Rcos60 and Rsin60 here, I get errors.
@@ -793,8 +817,12 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
             % mobsim3.erl:718: Warning: variable 'Cos60' is unused
             % mobsim3.erl:719: Warning: variable 'Sin60' is unused
             % The compiler is too clever by half!
+            Rcos36 = 0.0,
+            Rsin36 = 0.0,
             Rcos60 = 0.0,
-            Rsin60 = 0.0
+            Rsin60 = 0.0,
+            Rcos72 = 0.0,
+            Rsin72 = 0.0
         end,
 
     % - - - - - - - - - - - - - - - - - - -
@@ -826,6 +854,15 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
                 wxDC:drawRectangle(DCbuf, {Xnew - NodeRadius, Ynew - NodeRadius,
                     2 * NodeRadius, 2 * NodeRadius}),
                 wxDC:drawPoint(DCbuf, {Xnew, Ynew});
+            nodeShapePentagon ->
+                % http://erlang.org/doc/man/wxDC.html#drawPolygon-2
+                Pts = [{Xnew, Ynew - NodeRadius},
+                   {Xnew + Rsin72, Ynew - Rcos72},
+                   {Xnew + Rsin36, Ynew + Rcos36},
+                   {Xnew - Rsin36, Ynew + Rcos36},
+                   {Xnew - Rsin72, Ynew - Rcos72}],
+                wxDC:drawPolygon(DCbuf, Pts),
+                wxDC:drawPoint(DCbuf, {Xnew, Ynew});
             nodeShapeHexagon ->
                 % http://erlang.org/doc/man/wxDC.html#drawPolygon-2
                 Pts = [{Xnew - NodeRadius, Ynew},
@@ -846,7 +883,6 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
             end,
         % NOTE. Make a rough guess of best string location. Fix this later!
         wxDC:drawText(DCbuf,
-%            stringListCat([PIDstring, " [", integer_to_list(Nevt), "]"]),
             PIDstring ++ " [" ++ integer_to_list(Nevt) ++ "]",
             {Xnew + 3, Ynew + 3}),
         AccIn
@@ -1002,6 +1038,8 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                             maps:put(nodeShape, nodeShapeCircle, Vars);
                         ?MENU_ITEM_SQUARE ->
                             maps:put(nodeShape, nodeShapeSquare, Vars);
+                        ?MENU_ITEM_PENTAGON ->
+                            maps:put(nodeShape, nodeShapePentagon, Vars);
                         ?MENU_ITEM_HEXAGON ->
                             maps:put(nodeShape, nodeShapeHexagon, Vars);
                         ?MENU_ITEM_X ->
