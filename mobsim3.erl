@@ -49,7 +49,6 @@
 
 % Miscellaneous.
 -export([getSname/0]).
-% -export([stringListCat/1]).         % Just to get rid of the "unused" warning.
 
 % Event handling.
 % -export([handle_event/2]).
@@ -155,7 +154,7 @@
 -define(MENU_ITEM_TRACE_NODE, 1047).    % Default is on.
 -define(TRACE_NODE_DEFT, true).
 
-% The value "true" is not used. Always define this for commenting out blocks.
+% Always define this for commenting out blocks. The value "true" is not used.
 -define(hideUnused, true).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -278,10 +277,8 @@ createFrameB(ServerB) ->
     TitleText = if
         % See http://erlang.org/doc/reference_manual/expressions.html#id81948
         Sname /= "" ->
-%            stringListCat(["Mobile Simulation B: ", Sname, "@", Hostname]);
             "Mobile Simulation B: " ++ Sname ++ "@" ++ Hostname;
         true ->
-%            stringListCat(["Mobile Simulation B: ", Hostname])
             "Mobile Simulation B: " ++ Hostname
         end,
 
@@ -776,6 +773,9 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
         nodeShapePentagon ->
             Cos72 = (math:sqrt(5.0) - 1.0)/4.0,
             Sin72 = math:sqrt(1.0 - Cos72 * Cos72),
+            % Probably multiplication is faster than the square root.
+%            Cos36 = (math:sqrt(5.0) + 1.0)/4.0,
+%            Sin36 = math:sqrt(1.0 - Cos36 * Cos36),
             Cos36 = Sin72 * Sin72 * 2 - 1,
             Sin36 = Cos72 * Sin72 * 2,
 
@@ -1015,24 +1015,15 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                             true -> ok
                             end,
                             exit_normal;
+
+                        % Change the node colour.
                         ?MENU_ITEM_R ->
-                            % Change the node colour.
                             % http://erlang.org/doc/man/maps.html#put-3
-                            % Yes, I realise the VarsNew is superfluous!
-                            VarsNew = maps:put(nodeColour,
-                                ?NODE_COLOUR_R, Vars),
-                            VarsNew;
-%                            carry_on;
+                            maps:put(nodeColour, ?NODE_COLOUR_R, Vars);
                         ?MENU_ITEM_G ->
-                            VarsNew = maps:put(nodeColour,
-                                ?NODE_COLOUR_G, Vars),
-                            VarsNew;
-%                            carry_on;
+                            maps:put(nodeColour, ?NODE_COLOUR_G, Vars);
                         ?MENU_ITEM_B ->
-                            VarsNew = maps:put(nodeColour,
-                                ?NODE_COLOUR_B, Vars),
-                            VarsNew;
-%                            carry_on;
+                            maps:put(nodeColour, ?NODE_COLOUR_B, Vars);
 
                         ?MENU_ITEM_CIRCLE ->
                             maps:put(nodeShape, nodeShapeCircle, Vars);
@@ -1350,9 +1341,15 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                     io:format("~p wx event handler normal exit~n", [self()]),
                     ok;
                 is_map(CarryOn) ->
-                    io:format("~p"
-                        " \"local variable\" changed by event handler~n",
-                        [self()]),
+                    % This kind of event is usually a menu selection.
+                    % So only trace it when menu events are being traced.
+                    % The compiler complains if TraceMenu is used here.
+                    TraceMenu2 = maps:get(traceMenu, Vars, ?TRACE_MENU_DEFT),
+                    if TraceMenu2 ->
+                        io:format("~p event handler parameter changed~n",
+                            [self()]);
+                    true -> ok
+                    end,
                     handleWindowB(FrameB, DCclient, Dmap, CarryOn);
                 true ->
                     io:format("~p wx event handler abnormal exit: CarryOn=~p~n",
@@ -1384,7 +1381,6 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
             % Status text at the bottom of the window.
             % See http://erlang.org/doc/man/wxFrame.html#setStatusText-2
             ok = wxFrame:setStatusText(FrameB,
-%                stringListCat(["Status: N mobiles = ", StrNmobs]), []),
                 "Status: N mobiles = " ++ StrNmobs, []),
 
             % Trace the display-list.
@@ -1420,7 +1416,6 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
             % Status text at the bottom of the window.
             % See http://erlang.org/doc/man/wxFrame.html#setStatusText-2
             ok = wxFrame:setStatusText(FrameB,
-%                stringListCat(["Status: N mobiles = ", StrNmobs]), []),
                 "Status: N mobiles = " ++ StrNmobs, []),
 
             % Trace the display-list.
@@ -1501,6 +1496,7 @@ startWindowB() ->
     wx:destroy(),
     ok.
 
+%==============================================================================
 %==============================================================================
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Compute the new location after bouncing off the walls of the arena.
