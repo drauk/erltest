@@ -71,8 +71,8 @@
 -define(ARENA_POS_Y, ?ARENA_INDENT).
 -define(ARENA_POS_INIT, {?ARENA_POS_X, ?ARENA_POS_Y}).
 
-% NOTE: Must also take into account various panels!
--define(ARENA_SIZE_H_PANEL, 53).    % This is a fudge!
+% NOTE: Must also take into account the heights of various panels.
+-define(ARENA_SIZE_H_PANEL, 53).    % This is a fudge! My system uses 53.
 -define(ARENA_SIZE_W, (?FRAME_SIZE_W - 1 - ?ARENA_INDENT)).
 -define(ARENA_SIZE_H,
     (?FRAME_SIZE_H - 1 - ?ARENA_INDENT - ?ARENA_SIZE_H_PANEL)).
@@ -101,6 +101,7 @@
 -define(NODE_COLOUR_R, {255, 128, 128}).
 -define(NODE_COLOUR_G, {128, 255, 128}).
 -define(NODE_COLOUR_B, {128, 128, 255}).
+
 -define(NODE_COLOUR_DEFT, ?NODE_COLOUR_G).
 
 % - - - - - - - - - - - - - - - - - - -
@@ -124,6 +125,7 @@
 -define(NODE_RAD2, 10).
 -define(NODE_RAD3, 20).
 -define(NODE_RAD4, 40).
+
 -define(NODE_RAD_DEFT, ?NODE_RAD2).
 
 % - - - - - - - - - - - - - - - - - - -
@@ -146,7 +148,10 @@
 -define(MENU_ITEM_TRACE_MENU, 1045).    % Default is off.
 -define(TRACE_MENU_DEFT, false).
 
--define(MENU_ITEM_TRACE_NODE, 1046).    % Default is on.
+-define(MENU_ITEM_TRACE_UPDATE_UI, 1046). % Default is off.
+-define(TRACE_UPDATE_UI_DEFT, false).
+
+-define(MENU_ITEM_TRACE_NODE, 1047).    % Default is on.
 -define(TRACE_NODE_DEFT, true).
 
 % The value "true" is not used. Always define this for commenting out blocks.
@@ -347,31 +352,29 @@ createFrameB(ServerB) ->
     Menu2 = wxMenu:new([]),
     wxMenuBar:append(MenuBar1, Menu2, "Node colour"),
 
-    % Create a MenuItem.
+    % Create menu items, indexed by their RGB values.
     % http://erlang.org/doc/man/wxMenuItem.html
-    % This MenuItem becomes a Separator if "id" is not set!
-    MenuItemR = wxMenuItem:new(
-        [{id, ?MENU_ITEM_R}, {kind, ?wxITEM_RADIO}, {text, "Menu Item R"}]),
-    MenuItemG = wxMenuItem:new(
-        [{id, ?MENU_ITEM_G}, {kind, ?wxITEM_RADIO}, {text, "Menu Item G"}]),
-    MenuItemB = wxMenuItem:new(
-        [{id, ?MENU_ITEM_B}, {kind, ?wxITEM_RADIO}, {text, "Menu Item B"}]),
+    % Each MenuItem becomes a Separator if "id" is not set!
+    ColourMenus = [
+    { ?NODE_COLOUR_R, wxMenuItem:new(
+        [{id, ?MENU_ITEM_R}, {kind, ?wxITEM_RADIO}, {text, "Red"}]) },
+    { ?NODE_COLOUR_G, wxMenuItem:new(
+        [{id, ?MENU_ITEM_G}, {kind, ?wxITEM_RADIO}, {text, "Green"}]) },
+    { ?NODE_COLOUR_B, wxMenuItem:new(
+        [{id, ?MENU_ITEM_B}, {kind, ?wxITEM_RADIO}, {text, "Blue"}]) }
+    ],
 
-    % This has no effect here.
-%    wxMenuItem:check(MenuItemG, [{check, true}]),
+    % Add menu items to the menu.
+    lists:foreach(fun({_K, M}) -> wxMenu:append(Menu2, M) end, ColourMenus),
 
-    % Add menu items to menu.
-    wxMenu:append(Menu2, MenuItemR),
-    wxMenu:append(Menu2, MenuItemG),
-    wxMenu:append(Menu2, MenuItemB),
-
-    % Checking the radio button does have an effect after it is appended.
-    wxMenuItem:check(MenuItemG, [{check, true}]),
-
-    % This does override the wxMenuItem:new/2 setting for "text".
-    wxMenuItem:setText(MenuItemR, "Red"),
-    wxMenuItem:setText(MenuItemG, "Green"),
-    wxMenuItem:setText(MenuItemB, "Blue"),
+    % Check the radio button for the default colour.
+    % http://erlang.org/doc/man/lists.html#keyfind-3
+    % http://erlang.org/doc/reference_manual/data_types.html#id77368
+    % http://erlang.org/doc/man/erlang.html#element-2
+    % Very clumsy, but it does ensure menu/default synchronization.
+    wxMenuItem:check(
+        element(2, lists:keyfind(?NODE_COLOUR_DEFT, 1, ColourMenus)),
+        [{check, true}]),
 
     % - - - - - - - - - - - - - - - - - -
     % Create Menu 3.
@@ -379,28 +382,26 @@ createFrameB(ServerB) ->
     Menu3 = wxMenu:new([]),
     wxMenuBar:append(MenuBar1, Menu3, "Node shape"),
 
-    % Create menu items.
+    % Create menu items, indexed by their corresponding literals.
     % http://erlang.org/doc/man/wxMenuItem.html
-    MenuItemCircle = wxMenuItem:new(
-        [{id, ?MENU_ITEM_CIRCLE}, {kind, ?wxITEM_RADIO}, {text, "Circle"}]),
-    MenuItemSquare = wxMenuItem:new(
-        [{id, ?MENU_ITEM_SQUARE}, {kind, ?wxITEM_RADIO}, {text, "Square"}]),
-    MenuItemHexagon = wxMenuItem:new(
-        [{id, ?MENU_ITEM_HEXAGON}, {kind, ?wxITEM_RADIO}, {text, "Hexagon"}]),
-    MenuItemX = wxMenuItem:new(
-        [{id, ?MENU_ITEM_X}, {kind, ?wxITEM_RADIO}, {text, "X"}]),
+    ShapeMenus = [
+    { nodeShapeCircle, wxMenuItem:new([{id, ?MENU_ITEM_CIRCLE},
+        {kind, ?wxITEM_RADIO}, {text, "Circle"}]) },
+    { nodeShapeSquare, wxMenuItem:new([{id, ?MENU_ITEM_SQUARE},
+        {kind, ?wxITEM_RADIO}, {text, "Square"}]) },
+    { nodeShapeHexagon, wxMenuItem:new([{id, ?MENU_ITEM_HEXAGON},
+        {kind, ?wxITEM_RADIO}, {text, "Hexagon"}]) },
+    { nodeShapeX, wxMenuItem:new([{id, ?MENU_ITEM_X},
+        {kind, ?wxITEM_RADIO}, {text, "X"}]) }
+    ],
 
     % Add items to the menu.
-    wxMenu:append(Menu3, MenuItemCircle),
-    wxMenu:append(Menu3, MenuItemSquare),
-    wxMenu:append(Menu3, MenuItemHexagon),
-    wxMenu:append(Menu3, MenuItemX),
+    lists:foreach(fun({_K, M}) -> wxMenu:append(Menu3, M) end, ShapeMenus),
 
-    % Checking the radio button does have an effect after it is appended.
-    % NOTE. Must be synchronized with NODE_SHAPE_DEFT.
-    % This should be automated!
-    % Maybe could use a map from node shape to menu item???
-    wxMenuItem:check(MenuItemHexagon, [{check, true}]),
+    % Check the radio button for the default shape.
+    wxMenuItem:check(
+        element(2, lists:keyfind(?NODE_SHAPE_DEFT, 1, ShapeMenus)),
+        [{check, true}]),
 
     % - - - - - - - - - - - - - - - - - -
     % Create Menu 4.
@@ -409,27 +410,28 @@ createFrameB(ServerB) ->
     wxMenuBar:append(MenuBar1, Menu4, "Node radius"),
 
     % Create menu items.
-    % http://erlang.org/doc/man/wxMenuItem.html
-    % NOTE: Replace text 5, 10, 20, 40 with ?NODE_RAD1, 2, 3, 4.
-    MenuItemRad1 = wxMenuItem:new([{id, ?MENU_ITEM_RAD1},
-        {kind, ?wxITEM_RADIO}, {text, "5 pixels"}]),
-    MenuItemRad2 = wxMenuItem:new([{id, ?MENU_ITEM_RAD2},
-        {kind, ?wxITEM_RADIO}, {text, "10 pixels"}]),
-    MenuItemRad3 = wxMenuItem:new([{id, ?MENU_ITEM_RAD3},
-        {kind, ?wxITEM_RADIO}, {text, "20 pixels"}]),
-    MenuItemRad4 = wxMenuItem:new([{id, ?MENU_ITEM_RAD4},
-        {kind, ?wxITEM_RADIO}, {text, "40 pixels"}]),
+    RadiusMenus = [
+    { ?NODE_RAD1, wxMenuItem:new([{id, ?MENU_ITEM_RAD1},
+        {kind, ?wxITEM_RADIO}, {text,
+            integer_to_list(?NODE_RAD1) ++ " pixels"}]) },
+    { ?NODE_RAD2, wxMenuItem:new([{id, ?MENU_ITEM_RAD2},
+        {kind, ?wxITEM_RADIO}, {text,
+            integer_to_list(?NODE_RAD2) ++ " pixels"}]) },
+    { ?NODE_RAD3, wxMenuItem:new([{id, ?MENU_ITEM_RAD3},
+        {kind, ?wxITEM_RADIO}, {text,
+            integer_to_list(?NODE_RAD3) ++ " pixels"}]) },
+    { ?NODE_RAD4, wxMenuItem:new([{id, ?MENU_ITEM_RAD4},
+        {kind, ?wxITEM_RADIO}, {text,
+            integer_to_list(?NODE_RAD4) ++ " pixels"}]) }
+    ],
 
     % Add items to the menu.
-    wxMenu:append(Menu4, MenuItemRad1),
-    wxMenu:append(Menu4, MenuItemRad2),
-    wxMenu:append(Menu4, MenuItemRad3),
-    wxMenu:append(Menu4, MenuItemRad4),
+    lists:foreach(fun({_K, M}) -> wxMenu:append(Menu4, M) end, RadiusMenus),
 
-    % Checking the radio button does have an effect after it is appended.
-    % NOTE. Must be synchronized with NODE_RAD_DEFT.
-    % This should be automated!
-    wxMenuItem:check(MenuItemRad2, [{check, true}]),
+    % Check the radio button for the default.
+    wxMenuItem:check(
+        element(2, lists:keyfind(?NODE_RAD_DEFT, 1, RadiusMenus)),
+        [{check, true}]),
 
     % - - - - - - - - - - - - - - - - - -
     % Menu 5.
@@ -449,6 +451,8 @@ createFrameB(ServerB) ->
         {kind, ?wxITEM_CHECK}, {text, "Window events"}]),
     MenuItemTraceMenu = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_MENU},
         {kind, ?wxITEM_CHECK}, {text, "Menu events"}]),
+    MenuItemTraceUpdateUI = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_UPDATE_UI},
+        {kind, ?wxITEM_CHECK}, {text, "UpdateUI events"}]),
     MenuItemTraceNode = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_NODE},
         {kind, ?wxITEM_CHECK}, {text, "Node events"}]),
 
@@ -459,6 +463,7 @@ createFrameB(ServerB) ->
     wxMenu:append(Menu5, MenuItemTraceCursor),
     wxMenu:append(Menu5, MenuItemTraceWindow),
     wxMenu:append(Menu5, MenuItemTraceMenu),
+    wxMenu:append(Menu5, MenuItemTraceUpdateUI),
     wxMenu:append(Menu5, MenuItemTraceNode),
 
     % Show the defaults check/uncheck.
@@ -468,6 +473,7 @@ createFrameB(ServerB) ->
     wxMenuItem:check(MenuItemTraceCursor, [{check, ?TRACE_CURSOR_DEFT}]),
     wxMenuItem:check(MenuItemTraceWindow, [{check, ?TRACE_WINDOW_DEFT}]),
     wxMenuItem:check(MenuItemTraceMenu, [{check, ?TRACE_MENU_DEFT}]),
+    wxMenuItem:check(MenuItemTraceUpdateUI, [{check, ?TRACE_UPDATE_UI_DEFT}]),
     wxMenuItem:check(MenuItemTraceNode, [{check, ?TRACE_NODE_DEFT}]),
 
     % - - - - - - - - - - - - - - - - - -
@@ -723,7 +729,7 @@ createFrameB(ServerB) ->
 
     % wxUpdateUI
     % This generates a huge number of events!
-%    wxFrame:connect(FrameB, update_ui),
+    wxFrame:connect(FrameB, update_ui),
 
     % wxWindowCreate
     wxFrame:connect(FrameB, create),
@@ -768,8 +774,8 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
             Cos60 = 0.5,
             Sin60 = math:sqrt(0.75),
             % Note: math:floor() returns float, floor() returns integer.
-%                Rcos60 = floor(NodeRadius * Cos60 + 0.5),
-%                Rsin60 = floor(NodeRadius * Sin60 + 0.5),
+%            Rcos60 = floor(NodeRadius * Cos60 + 0.5),
+%            Rsin60 = floor(NodeRadius * Sin60 + 0.5),
             Rcos60 = ceil(NodeRadius * Cos60 + 0.5) - 1,
             Rsin60 = ceil(NodeRadius * Sin60 + 0.5) - 1;
         _Else ->
@@ -1023,6 +1029,8 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                             maps:put(traceWindow, int_to_boolean(Cint), Vars);
                         ?MENU_ITEM_TRACE_MENU ->
                             maps:put(traceMenu, int_to_boolean(Cint), Vars);
+                        ?MENU_ITEM_TRACE_UPDATE_UI ->
+                            maps:put(traceUpdateUI, int_to_boolean(Cint), Vars);
                         ?MENU_ITEM_TRACE_NODE ->
                             maps:put(traceNode, int_to_boolean(Cint), Vars);
 
@@ -1231,6 +1239,25 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                 _Else ->
                     if TraceWindow ->
                         io:format("window show: unknown type=~p ", [TypeB]);
+                    true -> ok
+                    end
+                end,
+                carry_on;
+
+            % http://erlang.org/doc/man/wxEvtHandler.html#type-wxUpdateUI
+            #wxUpdateUI{type=TypeB} ->
+                TraceUpdateUI
+                    = maps:get(traceUpdateUI, Vars, ?TRACE_UPDATE_UI_DEFT),
+                case TypeB of
+                update_ui ->
+                    if TraceUpdateUI ->
+                        io:format("Update UI event: id=~p~n", [Id]);
+                    true -> ok
+                    end;
+                _Else ->
+                    if TraceUpdateUI ->
+                        io:format("unknown Update UI event: type=~p, id=~p~n",
+                            [TypeB, Id]);
                     true -> ok
                     end
                 end,
@@ -1579,7 +1606,7 @@ startMobileBsample1(PIDserver) ->
     startMobileB(PIDserver, 5, 3350, {1100, 450, -30, 40}).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% Some mobile device processes, just for 4 times as much amusement.
+% Some mobile device processes: startMobileBsample1 times 4.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobileBsample2(PIDserver) ->
     Tgap = 4000,
@@ -1612,7 +1639,7 @@ startMobileBsample3(PIDserver) ->
     startMobileB(PIDserver, 15, 3350, {1100, 450, -30, 40}).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% Some mobile device processes, just for 4 times as much amusement.
+% Some mobile device processes: startMobileBsample3 times 4.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobileBsample4(PIDserver) ->
     Tgap = 5500,
