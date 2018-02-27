@@ -1,4 +1,4 @@
-% src/erlang/mobsim3.erl   2018-2-26   Alan U. Kennington.
+% src/erlang/mobsim3.erl   2018-2-27   Alan U. Kennington.
 % This module will simulate a mobile network using wxErlang.
 % Work In Progress!!!
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -742,13 +742,22 @@ createFrameB(ServerB) ->
     % See http://erlang.org/doc/man/wxFrame.html#setStatusText-2
     ok = wxFrame:setStatusText(FrameB, "Mobile simulation status", []),
 
+    % Get the current client drawing area.
+    { Wclient, Hclient } = wxWindow:getClientSize(FrameB),
+    io:format("Client size = (~p, ~p)~n", [Wclient, Hclient]),
+
     % Return the newly created frame.
     FrameB.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Redraw the window from the current display list.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
+drawWindowB(_FrameB, DCclient, Dmap, Vars)
+        when is_map(Dmap) andalso is_map(Vars) ->
+    % Get the current client drawing area.
+%    { Wclient, Hclient } = wxWindow:getClientSize(FrameB),
+%    io:format("Client size = (~p, ~p)~n", [Wclient, Hclient]),
+
     % See http://erlang.org/doc/man/wxBufferedDC.html
     % http://docs.wxwidgets.org/3.0/classwx_buffered_d_c.html
     DCbuf = wxBufferedDC:new(DCclient),
@@ -767,6 +776,17 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
     % Node shape and radius.
     NodeShape = maps:get(nodeShape, Vars, ?NODE_SHAPE_DEFT),
     NodeRadius = maps:get(nodeRadius, Vars, ?NODE_RAD_DEFT),
+
+    wxBufferedDC:setBackground(DCbuf, BrushBG),
+    wxBufferedDC:clear(DCbuf),
+
+    % Draw the Arena boundary.
+    wxBufferedDC:setBrush(DCbuf, BrushArena),
+    wxDC:drawRectangle(DCbuf, ?ARENA_POS_INIT, ?ARENA_SIZE_INIT),
+%    wxDC:drawRectangle(DCbuf, { 2, 2 }, {Wclient - 3, Hclient -3}),
+
+    % Draw the nodes.
+    wxBufferedDC:setBrush(DCbuf, BrushCircle),
 
     % Pre-compute pentagon/hexagon dimensions to improve efficiency. (?)
     case NodeShape of
@@ -826,16 +846,6 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
         end,
 
     % - - - - - - - - - - - - - - - - - - -
-    wxBufferedDC:setBackground(DCbuf, BrushBG),
-    wxBufferedDC:clear(DCbuf),
-
-    % Draw the Arena boundary.
-    wxBufferedDC:setBrush(DCbuf, BrushArena),
-    wxDC:drawRectangle(DCbuf, ?ARENA_POS_INIT, ?ARENA_SIZE_INIT),
-
-    % Draw the nodes.
-    wxBufferedDC:setBrush(DCbuf, BrushCircle),
-
     % I really want maps:foreach/2 here, but it doesn't exist.
     % http://erlang.org/doc/man/maps.html#fold-3
     % http://erlang.org/doc/man/lists.html#foreach-2
@@ -932,7 +942,6 @@ drawWindowB(DCclient, Dmap, Vars) when is_map(Dmap) andalso is_map(Vars) ->
 % Dmap is a map containing the current display-list, i.e. list of live nodes.
 % Vars is a map containing "local variables", which do not exist in Erlang!!
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% handleWindowB(FrameB, DCclient, Dlist) when is_list(Dlist) ->
 handleWindowB(FrameB, DCclient, Dmap, Vars)
         when is_map(Dmap) andalso is_map(Vars) ->
     receive
@@ -1205,7 +1214,7 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                     DCpaint = wxPaintDC:new(FrameB),
 
                     % Draw all of the nodes in the display list.
-                    drawWindowB(DCpaint, Dmap, Vars),
+                    drawWindowB(FrameB, DCpaint, Dmap, Vars),
 
                     % Clean out the trash.
                     wxPaintDC:destroy(DCpaint);
@@ -1391,7 +1400,7 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
             end,
 
             % Draw all of the nodes in the display list.
-            drawWindowB(DCclient, DmapNew, Vars),
+            drawWindowB(FrameB, DCclient, DmapNew, Vars),
 
             handleWindowB(FrameB, DCclient, DmapNew, Vars);
 
@@ -1426,7 +1435,8 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
             end,
 
             % Draw all of the nodes in the display list.
-            drawWindowB(DCclient, DmapNew, Vars),
+            drawWindowB(FrameB, DCclient, DmapNew, Vars),
+
             % Loop around and do it all again.
             handleWindowB(FrameB, DCclient, DmapNew, Vars);
 
@@ -1496,7 +1506,32 @@ startWindowB() ->
     wx:destroy(),
     ok.
 
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Entry point for this module.
+% This starts a window server for the mobile clients to send messages to.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Test on machine running "erl -sname serverD":
+%
+% >>> mobsim3:startMobSimB().
+%
+% On second machine, running for example "erl -sname clientD":
+%
+% >>> mobsim3:startMobileB(serverD@hostA, 4, 2000, {100, 350, 30, -40}).
+% mobsim3:startMobileB(serverD@hostA, 5, 2000, {150, 50, 40, 30}).
+%
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+startMobSimB() ->
+    io:format("mobsim3 process ~p spawning wxWindow process~n", [self()]),
+
+    % http://erlang.org/doc/man/erlang.html#spawn-3
+    % http://erlang.org/doc/man/erlang.html#register-2
+    PIDserver = spawn(mobsim3, startWindowB, []),
+    register(pidMobSimWindowB, PIDserver),
+    io:format("process ~p spawned/registered process ~p=~p~n",
+        [self(), pidMobSimWindowB, PIDserver]).
+
 %==============================================================================
+% Mobile nodes processes.
 %==============================================================================
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Compute the new location after bouncing off the walls of the arena.
@@ -1530,7 +1565,7 @@ moveBounce(X, Y, U, V) ->
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % A mobile device client process.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y, U, V})
+procMobSimB(NodeName, Ntimes, Tsleep, {X, Y, U, V})
         when is_integer(Ntimes)
         andalso is_number(Tsleep) andalso Tsleep >= 0 ->
     { Xnew, Ynew, Unew, Vnew } = moveBounce(X, Y, U, V),
@@ -1543,17 +1578,28 @@ procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y, U, V})
 
     % Send a message.
     io:format("procMobSimB ~p sending ~p ~p to ~p: ~p~n",
-        [self(), Msg, Ntimes, PIDserver, {X, Y, Xnew, Ynew}]),
-    { pidMobSimWindowB, PIDserver } !
+        [self(), Msg, Ntimes, NodeName, {X, Y, Xnew, Ynew}]),
+    % http://erlang.org/doc/reference_manual/expressions.html#send
+    % pidMobSimWindowB must be a registered name.
+    %   Example: PID of spawned server process.
+    % NodeName must be a "node name". Example: "serverD@hostA".
+    %   This is the -sname parameter for the erl Unix-process.
+    { pidMobSimWindowB, NodeName } !
         {self(), Msg, Ntimes, {X, Y, Xnew, Ynew}},
 
     % Wait for a response which might not arrive.
     Tout = 1000,
     io:format("procMobSimB ~p waiting for response [~p]~n", [self(), Ntimes]),
     receive
-        { PIDserverRX, Resp, NtimesRX } ->
-            io:format("procMobSimB ~p received ~p response ~p from ~p~n",
-                [self(), Resp, NtimesRX, PIDserverRX])
+        { PIDserverRX, pos_resp, NtimesRX } ->
+            io:format("procMobSimB ~p received pos_resp ~p from ~p~n",
+                [self(), NtimesRX, PIDserverRX]);
+        { PIDserverRX, fin_resp, NtimesRX } ->
+            io:format("procMobSimB ~p received fin_resp ~p from ~p~n",
+                [self(), NtimesRX, PIDserverRX]);
+        Evt ->
+            io:format("procMobSimB ~p received unknown message ~p~n",
+                [self(), Evt])
     after
         % Time-out handler.
         Tout ->
@@ -1569,26 +1615,8 @@ procMobSimB(PIDserver, Ntimes, Tsleep, {X, Y, U, V})
         io:format("procMobSimB ~p sleep ~p~n", [self(), Tsleep]),
         timer:sleep(Tsleep),
         % Loop and do it all again.
-        procMobSimB(PIDserver, Ntimes - 1, Tsleep, {Xnew, Ynew, Unew, Vnew})
+        procMobSimB(NodeName, Ntimes - 1, Tsleep, {Xnew, Ynew, Unew, Vnew})
     end.
-
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% Entry point for this module.
-% This starts a window server for the mobile clients to send messages to.
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% Test on machine running "erl -sname serverD":
-%
-% >>> mobsim3:startMobSimB().
-%
-% On second machine, running for example "erl -sname clientD":
-%
-% >>> mobsim3:startMobileB(serverD@hostA, 4, 2000, {100, 350, 30, -40}).
-% mobsim3:startMobileB(serverD@hostA, 5, 2000, {150, 50, 40, 30}).
-%
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-startMobSimB() ->
-    io:format("mobsim3 process ~p spawning wxWindow process~n", [self()]),
-    register(pidMobSimWindowB, spawn(mobsim3, startWindowB, [])).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Start a mobile devices, which is a client for the window process.
@@ -1610,80 +1638,81 @@ startMobSimB() ->
 % ....
 %
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-startMobileB(PIDserver, Ntimes, Tsleep, {X, Y, U, V}) ->
-    spawn(mobsim3, procMobSimB, [PIDserver, Ntimes, Tsleep, {X, Y, U, V}]).
+startMobileB(NodeName, Ntimes, Tsleep, {X, Y, U, V}) ->
+    % http://erlang.org/doc/man/erlang.html#spawn-3
+    spawn(mobsim3, procMobSimB, [NodeName, Ntimes, Tsleep, {X, Y, U, V}]).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % A single mobile device process, just for amusement.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-startMobileB(PIDserver) ->
-    startMobileB(PIDserver, 10, 2000, {10, 20, 30, 40}).
+startMobileB(NodeName) ->
+    startMobileB(NodeName, 10, 2000, {10, 20, 30, 40}).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Some mobile device processes, just for amusement.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-startMobileBsample1(PIDserver) ->
-    startMobileB(PIDserver, 8, 1000, {550, 50, -10, 30}),
-    startMobileB(PIDserver, 6, 1500, {600, 50, -10, 30}),
-    startMobileB(PIDserver, 4, 2000, {100, 350, 30, -40}),
-    startMobileB(PIDserver, 5, 2500, {150, 50, 40, 30}),
-    startMobileB(PIDserver, 8, 1250, {450, 50, -10, 30}),
-    startMobileB(PIDserver, 3, 3500, {100, 250, 30, -40}),
-    startMobileB(PIDserver, 5, 3000, {400, 200, -30, 40}),
+startMobileBsample1(NodeName) ->
+    startMobileB(NodeName, 8, 1000, {550, 50, -10, 30}),
+    startMobileB(NodeName, 6, 1500, {600, 50, -10, 30}),
+    startMobileB(NodeName, 4, 2000, {100, 350, 30, -40}),
+    startMobileB(NodeName, 5, 2500, {150, 50, 40, 30}),
+    startMobileB(NodeName, 8, 1250, {450, 50, -10, 30}),
+    startMobileB(NodeName, 3, 3500, {100, 250, 30, -40}),
+    startMobileB(NodeName, 5, 3000, {400, 200, -30, 40}),
 
-    startMobileB(PIDserver, 8, 1150, {750, 50, -10, 30}),
-    startMobileB(PIDserver, 6, 1600, {600, 550, -10, 30}),
-    startMobileB(PIDserver, 4, 2300, {600, 350, 30, -40}),
-    startMobileB(PIDserver, 5, 2800, {150, 650, 40, 30}),
-    startMobileB(PIDserver, 8, 1450, {950, 250, -10, 30}),
-    startMobileB(PIDserver, 6, 3650, {800, 650, 30, -40}),
-    startMobileB(PIDserver, 5, 3350, {1100, 450, -30, 40}).
+    startMobileB(NodeName, 8, 1150, {750, 50, -10, 30}),
+    startMobileB(NodeName, 6, 1600, {600, 550, -10, 30}),
+    startMobileB(NodeName, 4, 2300, {600, 350, 30, -40}),
+    startMobileB(NodeName, 5, 2800, {150, 650, 40, 30}),
+    startMobileB(NodeName, 8, 1450, {950, 250, -10, 30}),
+    startMobileB(NodeName, 6, 3650, {800, 650, 30, -40}),
+    startMobileB(NodeName, 5, 3350, {1100, 450, -30, 40}).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Some mobile device processes: startMobileBsample1 times 4.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-startMobileBsample2(PIDserver) ->
+startMobileBsample2(NodeName) ->
     Tgap = 4000,
-    startMobileBsample1(PIDserver),
+    startMobileBsample1(NodeName),
     timer:sleep(Tgap),
-    startMobileBsample1(PIDserver),
+    startMobileBsample1(NodeName),
     timer:sleep(Tgap),
-    startMobileBsample1(PIDserver),
+    startMobileBsample1(NodeName),
     timer:sleep(Tgap),
-    startMobileBsample1(PIDserver).
+    startMobileBsample1(NodeName).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Some mobile device processes, just for amusement.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-startMobileBsample3(PIDserver) ->
-    startMobileB(PIDserver, 18, 1000, {550, 50, -10, 30}),
-    startMobileB(PIDserver, 16, 1500, {600, 50, -10, 30}),
-    startMobileB(PIDserver, 14, 2000, {100, 350, 30, -40}),
-    startMobileB(PIDserver, 15, 2500, {150, 50, 40, 30}),
-    startMobileB(PIDserver, 18, 1250, {450, 50, -10, 30}),
-    startMobileB(PIDserver, 13, 3500, {400, 250, 30, -40}),
-    startMobileB(PIDserver, 15, 3000, {150, 200, -30, 40}),
+startMobileBsample3(NodeName) ->
+    startMobileB(NodeName, 18, 1000, {550, 50, -10, 30}),
+    startMobileB(NodeName, 16, 1500, {600, 50, -10, 30}),
+    startMobileB(NodeName, 14, 2000, {100, 350, 30, -40}),
+    startMobileB(NodeName, 15, 2500, {150, 50, 40, 30}),
+    startMobileB(NodeName, 18, 1250, {450, 50, -10, 30}),
+    startMobileB(NodeName, 13, 3500, {400, 250, 30, -40}),
+    startMobileB(NodeName, 15, 3000, {150, 200, -30, 40}),
 
-    startMobileB(PIDserver, 18, 1150, {750, 50, -10, 30}),
-    startMobileB(PIDserver, 16, 1600, {600, 550, -10, 30}),
-    startMobileB(PIDserver, 14, 2300, {600, 350, 30, -40}),
-    startMobileB(PIDserver, 16, 2800, {150, 650, 40, 30}),
-    startMobileB(PIDserver, 18, 1450, {950, 250, -10, 30}),
-    startMobileB(PIDserver, 17, 3650, {800, 650, 30, -40}),
-    startMobileB(PIDserver, 15, 3350, {1100, 450, -30, 40}).
+    startMobileB(NodeName, 18, 1150, {750, 50, -10, 30}),
+    startMobileB(NodeName, 16, 1600, {600, 550, -10, 30}),
+    startMobileB(NodeName, 14, 2300, {600, 350, 30, -40}),
+    startMobileB(NodeName, 16, 2800, {150, 650, 40, 30}),
+    startMobileB(NodeName, 18, 1450, {950, 250, -10, 30}),
+    startMobileB(NodeName, 17, 3650, {800, 650, 30, -40}),
+    startMobileB(NodeName, 15, 3350, {1100, 450, -30, 40}).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Some mobile device processes: startMobileBsample3 times 4.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-startMobileBsample4(PIDserver) ->
+startMobileBsample4(NodeName) ->
     Tgap = 5500,
-    startMobileBsample3(PIDserver),
+    startMobileBsample3(NodeName),
     timer:sleep(Tgap),
-    startMobileBsample3(PIDserver),
+    startMobileBsample3(NodeName),
     timer:sleep(Tgap),
-    startMobileBsample3(PIDserver),
+    startMobileBsample3(NodeName),
     timer:sleep(Tgap),
-    startMobileBsample3(PIDserver).
+    startMobileBsample3(NodeName).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Function which is exported to the general event handler module.
