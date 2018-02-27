@@ -43,7 +43,7 @@
 -export([startMobSimB/0, startWindowB/0]).
 
 % Client process.
--export([startMobileB/1, startMobileB/4, procMobSimB/4,
+-export([startMobileB/1, startMobileB/4, procMobSimB/5,
     startMobileBsample1/1, startMobileBsample2/1,
     startMobileBsample3/1, startMobileBsample4/1]).
 
@@ -755,9 +755,6 @@ createFrameB(ServerB) ->
 drawWindowB(_FrameB, DCclient, Dmap, Vars)
         when is_map(Dmap) andalso is_map(Vars) ->
     % Get the current client drawing area.
-%    { Wclient, Hclient } = wxWindow:getClientSize(FrameB),
-%    io:format("Client size = (~p, ~p)~n", [Wclient, Hclient]),
-
     % See http://erlang.org/doc/man/wxBufferedDC.html
     % http://docs.wxwidgets.org/3.0/classwx_buffered_d_c.html
     DCbuf = wxBufferedDC:new(DCclient),
@@ -781,9 +778,17 @@ drawWindowB(_FrameB, DCclient, Dmap, Vars)
     wxBufferedDC:clear(DCbuf),
 
     % Draw the Arena boundary.
+%    { Wclient, Hclient } = wxWindow:getClientSize(FrameB),
+%    io:format("Client size = (~p, ~p)~n", [Wclient, Hclient]),
+    {Wclient, Hclient} = maps:get(sizeClient, Vars, ?ARENA_SIZE_INIT),
+    ArenaPosX = ?ARENA_INDENT,
+    ArenaPosY = ?ARENA_INDENT,
+    ArenaPosW = Wclient - ?ARENA_INDENT * 2,
+    ArenaPosH = Hclient - ?ARENA_INDENT * 2,
+
     wxBufferedDC:setBrush(DCbuf, BrushArena),
-    wxDC:drawRectangle(DCbuf, ?ARENA_POS_INIT, ?ARENA_SIZE_INIT),
-%    wxDC:drawRectangle(DCbuf, { 2, 2 }, {Wclient - 3, Hclient -3}),
+%    wxDC:drawRectangle(DCbuf, ?ARENA_POS_INIT, ?ARENA_SIZE_INIT),
+    wxDC:drawRectangle(DCbuf, {ArenaPosX, ArenaPosY}, {ArenaPosW, ArenaPosH}),
 
     % Draw the nodes.
     wxBufferedDC:setBrush(DCbuf, BrushCircle),
@@ -907,6 +912,22 @@ drawWindowB(_FrameB, DCclient, Dmap, Vars)
     % Destroying the BufferedDC transfers the buffer to the ClientDC.
     wxBufferedDC:destroy(DCbuf),
     ok.
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Send window client size update to mobile nodes if the size has changed.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+sendSizeUpdateToMobs(Dmap, Vars, {WclientNew, HclientNew}) ->
+    % Fetch the old size from the event handler's local variables.
+    {WclientOld, HclientOld} = maps:get(sizeClient, Vars, ?ARENA_SIZE_INIT),
+
+    if {WclientOld, HclientOld} /= {WclientNew, HclientNew} ->
+        FnD = fun(PidMobile, _, AccIn) ->
+            PidMobile ! { self(), sizeUpdate, {WclientNew, HclientNew} },
+            AccIn
+        end,
+        maps:fold(FnD, 0, Dmap);
+    true -> ok
+    end.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Event-handling loop for FrameB window.
@@ -1181,20 +1202,20 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                 end,
                 carry_on;
 
-            % The returned rectangle is always {0, 0, 0, 0}. Not good!?
+            % The returned rectangle is always {0, 0, 0, 0}. Not good!
             #wxMove{type=TypeB, pos={Ws, Hs}, rect={Xr, Yr, Wr, Hr}} ->
                 % Trace window events.
                 TraceWindow = maps:get(traceWindow, Vars, ?TRACE_WINDOW_DEFT),
                 if TraceWindow ->
                     case TypeB of
                     move ->
-                        io:format("window move: "
+                        io:format("window ~p move: "
                             "pos=[~p, ~p], rect: X=~p, Y=~p, W=~p, H=~p~n",
-                            [Ws, Hs, Xr, Yr, Wr, Hr]);
+                            [Id, Ws, Hs, Xr, Yr, Wr, Hr]);
                     _Else ->
-                        io:format("window move: unknown type = ~p: "
+                        io:format("window ~p move: unknown type = ~p: "
                             "pos=[~p, ~p], rect: X=~p, Y=~p, W=~p, H=~p~n",
-                            [TypeB, Ws, Hs, Xr, Yr, Wr, Hr])
+                            [Id, TypeB, Ws, Hs, Xr, Yr, Wr, Hr])
                     end;
                 true -> ok
                 end,
@@ -1245,26 +1266,38 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
                 end,
                 carry_on;
 
-            % The returned rectangle is always {0, 0, 0, 0}. Not good!?
+            % The returned rectangle is always {0, 0, 0, 0}. Not good!!
             #wxSize{type=TypeB, size={Ws, Hs}, rect={Xr, Yr, Wr, Hr}} ->
                 TraceWindow = maps:get(traceWindow, Vars, ?TRACE_WINDOW_DEFT),
                 case TypeB of
                 size ->
+                    { WclientNew, HclientNew } = wxWindow:getClientSize(FrameB),
                     if TraceWindow ->
-                        io:format("window size: "
+                        io:format("window ~p size: "
                             "size=[~p, ~p], rect: X=~p, Y=~p, W=~p, H=~p~n",
-                            [Ws, Hs, Xr, Yr, Wr, Hr]);
+                            [Id, Ws, Hs, Xr, Yr, Wr, Hr]),
+                        io:format("    client window ~p size: {~p, ~p}~n",
+                            [Id, WclientNew, HclientNew]);
                     true -> ok
-                    end;
+                    end,
+
+                    % Send news to the mobile nodes.
+                    sendSizeUpdateToMobs(Dmap, Vars, {WclientNew, HclientNew}),
+
+                    % Record the new window area dimensions in Vars.
+                    Vars1 = maps:put(sizeWindow, {Ws, Hs}, Vars),
+
+                    % Record the new client area dimensions in Vars.
+                    maps:put(sizeClient, {WclientNew, HclientNew}, Vars1);
                 _Else ->
                     if TraceWindow ->
                         io:format("window size: unknown type = ~p: "
                             "size=[~p, ~p], rect: X=~p, Y=~p, W=~p, H=~p~n",
                             [TypeB, Ws, Hs, Xr, Yr, Wr, Hr]);
                     true -> ok
-                    end
-                end,
-                carry_on;
+                    end,
+                    carry_on
+                end;
 
             #wxShow{type=TypeB} ->
                 TraceWindow = maps:get(traceWindow, Vars, ?TRACE_WINDOW_DEFT),
@@ -1402,6 +1435,7 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
             % Draw all of the nodes in the display list.
             drawWindowB(FrameB, DCclient, DmapNew, Vars),
 
+            % Loop around and do it all again.
             handleWindowB(FrameB, DCclient, DmapNew, Vars);
 
         % Handle finish message from a mobile client.
@@ -1440,10 +1474,27 @@ handleWindowB(FrameB, DCclient, Dmap, Vars)
             % Loop around and do it all again.
             handleWindowB(FrameB, DCclient, DmapNew, Vars);
 
+        % Handle request for client window size from a mobile client.
+        { PIDclient, req_client_size } ->
+            TraceNode = maps:get(traceNode, Vars, ?TRACE_NODE_DEFT),
+            if TraceNode ->
+                io:format("~p received client size request from ~p~n",
+                    [self(), PIDclient]);
+            true -> ok
+            end,
+
+            % Reply with the requested client window size.
+            { Wclient, Hclient } = maps:get(sizeClient, Vars, ?ARENA_SIZE_INIT),
+            PIDclient ! { self(), sizeUpdate, { Wclient, Hclient } },
+
+            % Loop around and do it all again.
+            handleWindowB(FrameB, DCclient, Dmap, Vars);
+
         % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         % All other event classes which are connected.
         Evt ->
-            io:format("Process ~p received event ~p~n", [self(), Evt]),
+            io:format("Process ~p received unknown event ~p~n", [self(), Evt]),
+            % Loop around and do it all again.
             handleWindowB(FrameB, DCclient, Dmap, Vars)
     end.
 
@@ -1538,26 +1589,32 @@ startMobSimB() ->
 % This does not do all possible reflections, but it's good enough here.
 % Assumes at most one X-reflection and one Y-reflection.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-moveBounce(X, Y, U, V) ->
+moveBounce(X, Y, U, V, {Wclient, Hclient}) ->
+    % Compute the new arena boundaries.
+    ArenaPosX = ?ARENA_INDENT,
+    ArenaPosY = ?ARENA_INDENT,
+    ArenaPosXmax = Wclient - 1 - ?ARENA_INDENT,
+    ArenaPosYmax = Hclient - 1 - ?ARENA_INDENT,
+
     % Move the node.
     X0 = X + U, Y0 = Y + V,
 
     % Do the X-reflections. (Try to keep sub-expressions in range.)
     { X1, Y1, U1, V1 } = if
-        X0 < ?ARENA_POS_X ->
-            { ?ARENA_POS_X + (?ARENA_POS_X - X0), Y0, -U, V };
-        X0 > ?ARENA_POS_Xmax ->
-            { ?ARENA_POS_Xmax - (X0 - ?ARENA_POS_Xmax), Y0, -U, V };
+        X0 < ArenaPosX ->
+            { ArenaPosX + (ArenaPosX - X0), Y0, -U, V };
+        X0 > ArenaPosXmax ->
+            { ArenaPosXmax - (X0 - ArenaPosXmax), Y0, -U, V };
         true ->
             { X0, Y0, U, V }
         end,
 
     % Do the Y-reflections.
     if
-        Y1 < ?ARENA_POS_Y ->
-            { X1, ?ARENA_POS_Y + (?ARENA_POS_Y - Y1), U1, -V1 };
-        Y1 > ?ARENA_POS_Ymax ->
-            { X1, ?ARENA_POS_Ymax - (Y1 - ?ARENA_POS_Ymax), U1, -V1 };
+        Y1 < ArenaPosY ->
+            { X1, ArenaPosY + (ArenaPosY - Y1), U1, -V1 };
+        Y1 > ArenaPosYmax ->
+            { X1, ArenaPosYmax - (Y1 - ArenaPosYmax), U1, -V1 };
         true ->
             { X1, Y1, U1, V1 }
     end.
@@ -1565,10 +1622,35 @@ moveBounce(X, Y, U, V) ->
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % A mobile device client process.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-procMobSimB(NodeName, Ntimes, Tsleep, {X, Y, U, V})
+procMobSimB(NodeName, Ntimes, Tsleep, {X, Y, U, V}, VarsMob)
         when is_integer(Ntimes)
-        andalso is_number(Tsleep) andalso Tsleep >= 0 ->
-    { Xnew, Ynew, Unew, Vnew } = moveBounce(X, Y, U, V),
+        andalso is_number(Tsleep) andalso Tsleep >= 0
+        andalso is_map(VarsMob) ->
+    % If there is no info about the current client window size, ask for it.
+    FoundClientSize = maps:is_key(clientSize, VarsMob),
+    TwaitClientSize = if not FoundClientSize ->
+        { pidMobSimWindowB, NodeName } ! {self(), req_client_size},
+        10;
+    true -> 0
+    end,
+
+    % First check to see if there are any relevant updates.
+    VarsMobNew = receive
+        { PIDserverRXa, sizeUpdate, { WclientNew, HclientNew } } ->
+            io:format("procMobSimB ~p received sizeUpdate ~p from ~p~n",
+                [self(), { WclientNew, HclientNew }, PIDserverRXa]),
+        % Should check that the size update is from the correct server.
+        % However, (probably) it will be the same server that we send to.
+        maps:put(clientSize, { WclientNew, HclientNew }, VarsMob)
+    after TwaitClientSize -> VarsMob  % Usually an immediate time-out.
+    end,
+
+    % Find out the current window client-area size.
+    { Wclient, Hclient } = maps:get(clientSize, VarsMobNew,
+        { ?ARENA_SIZE_W, ?ARENA_SIZE_H }),
+
+    % Move the mobile node to its new location.
+    { Xnew, Ynew, Unew, Vnew } = moveBounce(X, Y, U, V, {Wclient, Hclient}),
     if
         Ntimes > 0 ->
             Msg = pos;
@@ -1615,7 +1697,8 @@ procMobSimB(NodeName, Ntimes, Tsleep, {X, Y, U, V})
         io:format("procMobSimB ~p sleep ~p~n", [self(), Tsleep]),
         timer:sleep(Tsleep),
         % Loop and do it all again.
-        procMobSimB(NodeName, Ntimes - 1, Tsleep, {Xnew, Ynew, Unew, Vnew})
+        procMobSimB(NodeName, Ntimes - 1, Tsleep, {Xnew, Ynew, Unew, Vnew},
+            VarsMobNew)
     end.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1640,7 +1723,7 @@ procMobSimB(NodeName, Ntimes, Tsleep, {X, Y, U, V})
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobileB(NodeName, Ntimes, Tsleep, {X, Y, U, V}) ->
     % http://erlang.org/doc/man/erlang.html#spawn-3
-    spawn(mobsim3, procMobSimB, [NodeName, Ntimes, Tsleep, {X, Y, U, V}]).
+    spawn(mobsim3, procMobSimB, [NodeName, Ntimes, Tsleep, {X, Y, U, V}, #{}]).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % A single mobile device process, just for amusement.
