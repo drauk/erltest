@@ -1,4 +1,4 @@
-% src/erlang/mobsim3.erl   2018-2-27   Alan U. Kennington.
+% src/erlang/mobsim3.erl   2018-3-1   Alan U. Kennington.
 % This module will simulate a mobile network using wxErlang.
 % Work In Progress!!!
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -439,8 +439,6 @@ createFrameB(ServerB) ->
     wxMenuBar:append(MenuBar1, Menu5, "Trace options"),
 
     % Menu items.
-    MenuItemTraceDmap = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_DMAP},
-        {kind, ?wxITEM_CHECK}, {text, "Display list"}]),
     MenuItemTraceMouse = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_MOUSE},
         {kind, ?wxITEM_CHECK}, {text, "Mouse events"}]),
     MenuItemTraceMotion = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_MOTION},
@@ -453,27 +451,29 @@ createFrameB(ServerB) ->
         {kind, ?wxITEM_CHECK}, {text, "Menu events"}]),
     MenuItemTraceUpdateUI = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_UPDATE_UI},
         {kind, ?wxITEM_CHECK}, {text, "UpdateUI events"}]),
+    MenuItemTraceDmap = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_DMAP},
+        {kind, ?wxITEM_CHECK}, {text, "Display list"}]),
     MenuItemTraceNode = wxMenuItem:new([{id, ?MENU_ITEM_TRACE_NODE},
         {kind, ?wxITEM_CHECK}, {text, "Node events"}]),
 
     % Add menu items to the menu.
-    wxMenu:append(Menu5, MenuItemTraceDmap),
     wxMenu:append(Menu5, MenuItemTraceMouse),
     wxMenu:append(Menu5, MenuItemTraceMotion),
     wxMenu:append(Menu5, MenuItemTraceCursor),
     wxMenu:append(Menu5, MenuItemTraceWindow),
     wxMenu:append(Menu5, MenuItemTraceMenu),
     wxMenu:append(Menu5, MenuItemTraceUpdateUI),
+    wxMenu:append(Menu5, MenuItemTraceDmap),
     wxMenu:append(Menu5, MenuItemTraceNode),
 
     % Show the defaults check/uncheck.
-    wxMenuItem:check(MenuItemTraceDmap, [{check, ?TRACE_DMAP_DEFT}]),
     wxMenuItem:check(MenuItemTraceMouse, [{check, ?TRACE_MOUSE_DEFT}]),
     wxMenuItem:check(MenuItemTraceMotion, [{check, ?TRACE_MOTION_DEFT}]),
     wxMenuItem:check(MenuItemTraceCursor, [{check, ?TRACE_CURSOR_DEFT}]),
     wxMenuItem:check(MenuItemTraceWindow, [{check, ?TRACE_WINDOW_DEFT}]),
     wxMenuItem:check(MenuItemTraceMenu, [{check, ?TRACE_MENU_DEFT}]),
     wxMenuItem:check(MenuItemTraceUpdateUI, [{check, ?TRACE_UPDATE_UI_DEFT}]),
+    wxMenuItem:check(MenuItemTraceDmap, [{check, ?TRACE_DMAP_DEFT}]),
     wxMenuItem:check(MenuItemTraceNode, [{check, ?TRACE_NODE_DEFT}]),
 
     % - - - - - - - - - - - - - - - - - -
