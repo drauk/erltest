@@ -1,4 +1,4 @@
-% src/erlang/mobsim3.erl   2018-3-1   Alan U. Kennington.
+% src/erlang/mobsim3.erl   2018-3-2   Alan U. Kennington.
 % This module will simulate a mobile network using wxErlang.
 % Work In Progress!!!
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -43,9 +43,13 @@
 -export([startMobSimB/0, startWindowB/0]).
 
 % Client process.
--export([startMobileB/1, startMobileB/4, procMobSimB/5,
-    startMobileBsample1/1, startMobileBsample2/1,
-    startMobileBsample3/1, startMobileBsample4/1]).
+-export([startMobileB/1, startMobileBq/1,
+    startMobileB/4, startMobileBq/4,
+    procMobSimB/5,  % Exported for spawning.
+    startMobileBsample1/1, startMobileBsample1q/1,
+    startMobileBsample2/1, startMobileBsample2q/1,
+    startMobileBsample3/1, startMobileBsample3q/1,
+    startMobileBsample4/1, startMobileBsample4q/1]).
 
 % Miscellaneous.
 -export([getSname/0]).
@@ -1626,6 +1630,8 @@ procMobSimB(NodeName, Ntimes, Tsleep, {X, Y, U, V}, VarsMob)
         when is_integer(Ntimes)
         andalso is_number(Tsleep) andalso Tsleep >= 0
         andalso is_map(VarsMob) ->
+    TraceMsg = maps:get(traceMsg, VarsMob, true),
+
     % If there is no info about the current client window size, ask for it.
     FoundClientSize = maps:is_key(clientSize, VarsMob),
     TwaitClientSize = if not FoundClientSize ->
@@ -1636,9 +1642,12 @@ procMobSimB(NodeName, Ntimes, Tsleep, {X, Y, U, V}, VarsMob)
 
     % First check to see if there are any relevant updates.
     VarsMobNew = receive
-        { PIDserverRXa, sizeUpdate, { WclientNew, HclientNew } } ->
+    { PIDserverRXa, sizeUpdate, { WclientNew, HclientNew } } ->
+        if TraceMsg ->
             io:format("procMobSimB ~p received sizeUpdate ~p from ~p~n",
-                [self(), { WclientNew, HclientNew }, PIDserverRXa]),
+                [self(), { WclientNew, HclientNew }, PIDserverRXa]);
+        true -> ok
+        end,
         % Should check that the size update is from the correct server.
         % However, (probably) it will be the same server that we send to.
         maps:put(clientSize, { WclientNew, HclientNew }, VarsMob)
@@ -1659,8 +1668,11 @@ procMobSimB(NodeName, Ntimes, Tsleep, {X, Y, U, V}, VarsMob)
         end,
 
     % Send a message.
-    io:format("procMobSimB ~p sending ~p ~p to ~p: ~p~n",
-        [self(), Msg, Ntimes, NodeName, {X, Y, Xnew, Ynew}]),
+    if TraceMsg ->
+        io:format("procMobSimB ~p sending ~p ~p to ~p: ~p~n",
+            [self(), Msg, Ntimes, NodeName, {X, Y, Xnew, Ynew}]);
+    true -> ok
+    end,
     % http://erlang.org/doc/reference_manual/expressions.html#send
     % pidMobSimWindowB must be a registered name.
     %   Example: PID of spawned server process.
@@ -1671,30 +1683,52 @@ procMobSimB(NodeName, Ntimes, Tsleep, {X, Y, U, V}, VarsMob)
 
     % Wait for a response which might not arrive.
     Tout = 1000,
-    io:format("procMobSimB ~p waiting for response [~p]~n", [self(), Ntimes]),
+    if TraceMsg ->
+        io:format("procMobSimB ~p waiting for response [~p]~n",
+            [self(), Ntimes]);
+    true -> ok
+    end,
     receive
         { PIDserverRX, pos_resp, NtimesRX } ->
-            io:format("procMobSimB ~p received pos_resp ~p from ~p~n",
-                [self(), NtimesRX, PIDserverRX]);
+            if TraceMsg ->
+                io:format("procMobSimB ~p received pos_resp ~p from ~p~n",
+                    [self(), NtimesRX, PIDserverRX]);
+            true -> ok
+            end;
         { PIDserverRX, fin_resp, NtimesRX } ->
-            io:format("procMobSimB ~p received fin_resp ~p from ~p~n",
-                [self(), NtimesRX, PIDserverRX]);
+            if TraceMsg ->
+                io:format("procMobSimB ~p received fin_resp ~p from ~p~n",
+                    [self(), NtimesRX, PIDserverRX]);
+            true -> ok
+            end;
         Evt ->
-            io:format("procMobSimB ~p received unknown message ~p~n",
-                [self(), Evt])
+            if TraceMsg ->
+                io:format("procMobSimB ~p received unknown message ~p~n",
+                    [self(), Evt]);
+            true -> ok
+            end
     after
         % Time-out handler.
         Tout ->
-            io:format("procMobSimB ~p time-out after ~p mS~n",
-                [self(), Tout])
+            if TraceMsg ->
+                io:format("procMobSimB ~p time-out after ~p mS~n",
+                    [self(), Tout]);
+            true -> ok
+            end
     end,
 
     % The end-game.
     if Ntimes =< 0 ->
-        io:format("procMobSimB ~p END~n", [self()]);
+        if TraceMsg ->
+            io:format("procMobSimB ~p END~n", [self()]);
+        true -> ok
+        end;
     true ->
         % Wait for a while before sending next message.
-        io:format("procMobSimB ~p sleep ~p~n", [self(), Tsleep]),
+        if TraceMsg ->
+            io:format("procMobSimB ~p sleep ~p~n", [self(), Tsleep]);
+        true -> ok
+        end,
         timer:sleep(Tsleep),
         % Loop and do it all again.
         procMobSimB(NodeName, Ntimes - 1, Tsleep, {Xnew, Ynew, Unew, Vnew},
@@ -1721,81 +1755,107 @@ procMobSimB(NodeName, Ntimes, Tsleep, {X, Y, U, V}, VarsMob)
 % ....
 %
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-startMobileB(NodeName, Ntimes, Tsleep, {X, Y, U, V}) ->
+startMobileB(NodeName, Ntimes, Tsleep, {X, Y, U, V}, VarsMob)
+        when is_map(VarsMob) ->
     % http://erlang.org/doc/man/erlang.html#spawn-3
-    spawn(mobsim3, procMobSimB, [NodeName, Ntimes, Tsleep, {X, Y, U, V}, #{}]).
+    spawn(mobsim3,
+        procMobSimB, [NodeName, Ntimes, Tsleep, {X, Y, U, V}, VarsMob]).
+% Noisy version.
+startMobileB(NodeName, Ntimes, Tsleep, {X, Y, U, V}) ->
+    startMobileB(NodeName, Ntimes, Tsleep, {X, Y, U, V}, #{}).
+% Quite version.
+startMobileBq(NodeName, Ntimes, Tsleep, {X, Y, U, V}) ->
+    startMobileB(NodeName, Ntimes, Tsleep, {X, Y, U, V}, #{traceMsg => false}).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % A single mobile device process, just for amusement.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startMobileB(NodeName) ->
     startMobileB(NodeName, 10, 2000, {10, 20, 30, 40}).
+startMobileBq(NodeName) ->
+    startMobileBq(NodeName, 10, 2000, {10, 20, 30, 40}).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Some mobile device processes, just for amusement.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-startMobileBsample1(NodeName) ->
-    startMobileB(NodeName, 8, 1000, {550, 50, -10, 30}),
-    startMobileB(NodeName, 6, 1500, {600, 50, -10, 30}),
-    startMobileB(NodeName, 4, 2000, {100, 350, 30, -40}),
-    startMobileB(NodeName, 5, 2500, {150, 50, 40, 30}),
-    startMobileB(NodeName, 8, 1250, {450, 50, -10, 30}),
-    startMobileB(NodeName, 3, 3500, {100, 250, 30, -40}),
-    startMobileB(NodeName, 5, 3000, {400, 200, -30, 40}),
+startMobileBsample1(NodeName, VarsMob) when is_map(VarsMob) ->
+    startMobileB(NodeName, 8, 1000, {550, 50, -10, 30}, VarsMob),
+    startMobileB(NodeName, 6, 1500, {600, 50, -10, 30}, VarsMob),
+    startMobileB(NodeName, 4, 2000, {100, 350, 30, -40}, VarsMob),
+    startMobileB(NodeName, 5, 2500, {150, 50, 40, 30}, VarsMob),
+    startMobileB(NodeName, 8, 1250, {450, 50, -10, 30}, VarsMob),
+    startMobileB(NodeName, 3, 3500, {100, 250, 30, -40}, VarsMob),
+    startMobileB(NodeName, 5, 3000, {400, 200, -30, 40}, VarsMob),
 
-    startMobileB(NodeName, 8, 1150, {750, 50, -10, 30}),
-    startMobileB(NodeName, 6, 1600, {600, 550, -10, 30}),
-    startMobileB(NodeName, 4, 2300, {600, 350, 30, -40}),
-    startMobileB(NodeName, 5, 2800, {150, 650, 40, 30}),
-    startMobileB(NodeName, 8, 1450, {950, 250, -10, 30}),
-    startMobileB(NodeName, 6, 3650, {800, 650, 30, -40}),
-    startMobileB(NodeName, 5, 3350, {1100, 450, -30, 40}).
+    startMobileB(NodeName, 8, 1150, {750, 50, -10, 30}, VarsMob),
+    startMobileB(NodeName, 6, 1600, {600, 550, -10, 30}, VarsMob),
+    startMobileB(NodeName, 4, 2300, {600, 350, 30, -40}, VarsMob),
+    startMobileB(NodeName, 5, 2800, {150, 650, 40, 30}, VarsMob),
+    startMobileB(NodeName, 8, 1450, {950, 250, -10, 30}, VarsMob),
+    startMobileB(NodeName, 6, 3650, {800, 650, 30, -40}, VarsMob),
+    startMobileB(NodeName, 5, 3350, {1100, 450, -30, 40}, VarsMob).
+startMobileBsample1(NodeName) ->
+    startMobileBsample1(NodeName, #{}).
+startMobileBsample1q(NodeName) ->
+    startMobileBsample1(NodeName, #{ traceMsg => false }).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Some mobile device processes: startMobileBsample1 times 4.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-startMobileBsample2(NodeName) ->
+startMobileBsample2(NodeName, VarsMob) when is_map(VarsMob) ->
     Tgap = 4000,
-    startMobileBsample1(NodeName),
+    startMobileBsample1(NodeName, VarsMob),
     timer:sleep(Tgap),
-    startMobileBsample1(NodeName),
+    startMobileBsample1(NodeName, VarsMob),
     timer:sleep(Tgap),
-    startMobileBsample1(NodeName),
+    startMobileBsample1(NodeName, VarsMob),
     timer:sleep(Tgap),
-    startMobileBsample1(NodeName).
+    startMobileBsample1(NodeName, VarsMob).
+startMobileBsample2(NodeName) ->
+    startMobileBsample2(NodeName, #{}).
+startMobileBsample2q(NodeName) ->
+    startMobileBsample2(NodeName, #{ traceMsg => false }).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Some mobile device processes, just for amusement.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-startMobileBsample3(NodeName) ->
-    startMobileB(NodeName, 18, 1000, {550, 50, -10, 30}),
-    startMobileB(NodeName, 16, 1500, {600, 50, -10, 30}),
-    startMobileB(NodeName, 14, 2000, {100, 350, 30, -40}),
-    startMobileB(NodeName, 15, 2500, {150, 50, 40, 30}),
-    startMobileB(NodeName, 18, 1250, {450, 50, -10, 30}),
-    startMobileB(NodeName, 13, 3500, {400, 250, 30, -40}),
-    startMobileB(NodeName, 15, 3000, {150, 200, -30, 40}),
+startMobileBsample3(NodeName, VarsMob) when is_map(VarsMob) ->
+    startMobileB(NodeName, 18, 1000, {550, 50, -10, 30}, VarsMob),
+    startMobileB(NodeName, 16, 1500, {600, 50, -10, 30}, VarsMob),
+    startMobileB(NodeName, 14, 2000, {100, 350, 30, -40}, VarsMob),
+    startMobileB(NodeName, 15, 2500, {150, 50, 40, 30}, VarsMob),
+    startMobileB(NodeName, 18, 1250, {450, 50, -10, 30}, VarsMob),
+    startMobileB(NodeName, 13, 3500, {400, 250, 30, -40}, VarsMob),
+    startMobileB(NodeName, 15, 3000, {150, 200, -30, 40}, VarsMob),
 
-    startMobileB(NodeName, 18, 1150, {750, 50, -10, 30}),
-    startMobileB(NodeName, 16, 1600, {600, 550, -10, 30}),
-    startMobileB(NodeName, 14, 2300, {600, 350, 30, -40}),
-    startMobileB(NodeName, 16, 2800, {150, 650, 40, 30}),
-    startMobileB(NodeName, 18, 1450, {950, 250, -10, 30}),
-    startMobileB(NodeName, 17, 3650, {800, 650, 30, -40}),
-    startMobileB(NodeName, 15, 3350, {1100, 450, -30, 40}).
+    startMobileB(NodeName, 18, 1150, {750, 50, -10, 30}, VarsMob),
+    startMobileB(NodeName, 16, 1600, {600, 550, -10, 30}, VarsMob),
+    startMobileB(NodeName, 14, 2300, {600, 350, 30, -40}, VarsMob),
+    startMobileB(NodeName, 16, 2800, {150, 650, 40, 30}, VarsMob),
+    startMobileB(NodeName, 18, 1450, {950, 250, -10, 30}, VarsMob),
+    startMobileB(NodeName, 17, 3650, {800, 650, 30, -40}, VarsMob),
+    startMobileB(NodeName, 15, 3350, {1100, 450, -30, 40}, VarsMob).
+startMobileBsample3(NodeName) ->
+    startMobileBsample3(NodeName, #{}).
+startMobileBsample3q(NodeName) ->
+    startMobileBsample3(NodeName, #{ traceMsg => false }).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Some mobile device processes: startMobileBsample3 times 4.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-startMobileBsample4(NodeName) ->
+startMobileBsample4(NodeName, VarsMob) when is_map(VarsMob) ->
     Tgap = 5500,
-    startMobileBsample3(NodeName),
+    startMobileBsample3(NodeName, VarsMob),
     timer:sleep(Tgap),
-    startMobileBsample3(NodeName),
+    startMobileBsample3(NodeName, VarsMob),
     timer:sleep(Tgap),
-    startMobileBsample3(NodeName),
+    startMobileBsample3(NodeName, VarsMob),
     timer:sleep(Tgap),
-    startMobileBsample3(NodeName).
+    startMobileBsample3(NodeName, VarsMob).
+startMobileBsample4(NodeName) ->
+    startMobileBsample4(NodeName, #{}).
+startMobileBsample4q(NodeName) ->
+    startMobileBsample4(NodeName, #{ traceMsg => false }).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Function which is exported to the general event handler module.
