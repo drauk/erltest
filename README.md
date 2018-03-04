@@ -1,5 +1,5 @@
 # erltest
-My Erlang experiments.
+My Erlang/OTP/wxErlang experiments.
 
 **test1.erl**: Some trivial exercises with Erlang functions.
 
