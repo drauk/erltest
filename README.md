@@ -17,4 +17,7 @@ My Erlang/OTP/wxErlang experiments.
 * Module A transmits Erlang shell commands to the gen_server module.
 * Module B is the call-handler module which the gen_server module calls.
 * Module C provides some basic low-level functions to Module B for demonstration purposes.
-* The call chain is: Erlang shell <==> A <==> gen_server <==> B <==> C.
+* The call chain is: Erlang shell <==> A <==> GS-module <--> GS-daemon <==> B <==> C.
+* The GS-daemon is called the "gen_server" in the Erlang/OTP documentation.
+* Communication between the GS-module and GS-daemon uses inter-process messages.
+* The other links use plain function calls.
