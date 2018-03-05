@@ -25,25 +25,83 @@
 % [....]
 %
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% There's something very odd going on here.
+%
+% 1> gs1a:start_link().
+% {ok,<0.62.0>}
+% 2> i().
+% [....]
+% <0.62.0>              gs1b:init/1                            233      118    0
+% gs1reg                gen_server:loop/7                       10
+%
+% ok
+% 3> gs1a:alloc().
+% 1
+% 2> i().
+% [....]
+% <0.62.0>              gs1b:init/1                            233      130    0
+% gs1reg                gen_server:loop/7                       10
+% [....]
+%
+% ok
+% 5> gs1a:xyz().
+% ** exception error: undefined function gs1a:xyz/0
+% 6> i().
+% [....]
+% <0.67.0>              erlang:apply/2                        2586    27930    0
+%                       c:pinfo/1                               50
+% 7> gs1a:alloc().
+% ** exception exit: {noproc,{gen_server,call,[gs1reg,alloc]}}
+%      in function  gen_server:call/2 (gen_server.erl, line 210)
+% 8> gs1a:start_link().
+% {ok,<0.72.0>}
+% 9> gs1a:alloc().
+% 1
+%
+% When a single incorrect call is made to module gs1a, the process gs1reg
+% is apparently terminated by the gen_server module.
+% Then it can be restarted again.
+% But it is not obvious why a running instance of gs1b should be terminated
+% when an incorrect call is made to a non-existent function in gs1a.
+%
+% This seems to give a clue.
+%
+% 10> xyz:abc().
+% ** exception error: undefined function xyz:abc/0
+% 11> gs1a:alloc().
+% ** exception exit: {noproc,{gen_server,call,[gs1reg,alloc]}}
+%      in function  gen_server:call/2 (gen_server.erl, line 210)
+%
+% It looks any error at all in the erlang shell is causing the gen-server
+% loop to drop the gs1b server process.
+% This looks at first sight like a bad idea.
+% Why should a supposedly stand-alone process collapse when shell errors occur?
+%
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+%==============================================================================
 % Module A.
 % This module provides the basic user access functions.
 % The gen_server itself is in Module B: gs1b.erl.
+
 -module(gs1a).
 
 % Gen_server: http://erlang.org/doc/man/gen_server.html
 % Gen_server: http://erlang.org/doc/design_principles/gen_server_concepts.html
 % Behaviours: http://erlang.org/doc/design_principles/des_princ.html#id63247
-% Mod. attributes: http://erlang.org/doc/reference_manual/modules.html#id78271
 % Note that this user-interface module does _not_ have gen_server behaviour!!!
 % -behaviour(gen_server).
 
+% The main start-up call.
 -export([start_link/0]).
+
+% Some services.
 -export([alloc/0, free/1]).
 
 % Make the registered name of the server _different_ to the module name.
 -define(REG_NAME, gs1reg).
 
+%==============================================================================
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % This function is called from the ERL shell.
 % So probably the name of the function doesn't matter.

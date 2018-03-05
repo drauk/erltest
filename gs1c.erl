@@ -6,11 +6,15 @@
 % Module C.
 % This module provides some basic low-level "services" to Module B.
 % The basic user access (client) functions are in Module A: gs1a.erl.
-% The gen_server server is in Module B: gs1b.erl.
+% The gen_server callback handlers are in Module B: gs1b.erl.
+% The "real" services are in Module C.
+% So it goes: A <--> gen_server <--> B <--> C.
+
 -module(gs1c).
 
 -export([channels/0, alloc/1, free/2]).
 
+%==============================================================================
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Constructor for a list of integers which can be allocated.
 % The returned structure will be held in trust by the gen_server module.
