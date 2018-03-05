@@ -3,7 +3,7 @@
 % Here the user-interface and service modules are separate, to find out
 % what happens when the advice in the documentation is _not_ followed!
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% Call chain: Erlang shell <==> A <==> gen_server <- -> daemon <==> B <==> C.
+% Call chain: Erlang shell <==> A <==> GS-module <- -> GS-daemon <==> B <==> C.
 % Module A: gs1a.erl
 % Module B: gs1b.erl
 % Module C: gs1c.erl

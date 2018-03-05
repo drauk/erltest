@@ -5,7 +5,7 @@
 % This is the gen_server "callback module" which contains call handlers.
 % Roughly speaking, Module A calls gen_server, which calls Module B.
 % The basic command-line functions are in Module A: gs1a.erl.
-% Call chain: Erlang shell <==> A <==> gen_server <- -> daemon <==> B <==> C.
+% Call chain: Erlang shell <==> A <==> GS-module <- -> GS-daemon <==> B <==> C.
 
 -module(gs1b).
 

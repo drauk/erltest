@@ -8,7 +8,7 @@
 % The basic user access (client) functions are in Module A: gs1a.erl.
 % The gen_server callback handlers are in Module B: gs1b.erl.
 % The "real" services are in Module C.
-% Call chain: Erlang shell <==> A <==> gen_server <- -> daemon <==> B <==> C.
+% Call chain: Erlang shell <==> A <==> GS-module <- -> GS-daemon <==> B <==> C.
 
 -module(gs1c).
 
