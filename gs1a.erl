@@ -48,20 +48,33 @@
 % This function is called from the ERL shell.
 % So probably the name of the function doesn't matter.
 % gen_server:start_link/4 registers the server module gs1b as ?REG_NAME.
+% See http://erlang.org/doc/man/gen_server.html#start_link-3
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 start_link() ->
-    gen_server:start_link({local, ?REG_NAME}, gs1b, [], []).
+    ServerName = {local, ?REG_NAME},
+    Module = gs1b,
+    Args = [],
+    Options = [],
+    gen_server:start_link(ServerName, Module, Args, Options).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % User-interface function to call the server via the gen_server module.
 % "call" is synchronous.
+% See http://erlang.org/doc/man/gen_server.html#call-2
+% Return value is the reply from gs1c:alloc/1.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 alloc() ->
-    gen_server:call(?REG_NAME, alloc).
+    ServerRef = ?REG_NAME,
+    Request = alloc,
+    gen_server:call(ServerRef, Request).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % User-interface function to call the server via the gen_server module.
 % "cast" is asynchronous.
+% See http://erlang.org/doc/man/gen_server.html#cast-2
+% Return value is "ok" because the return value of gs1c:free/2 is the State.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 free(X) ->
-    gen_server:cast(?REG_NAME, {free, X}).
+    ServerRef = ?REG_NAME,
+    Request = {free, X},
+    gen_server:cast(ServerRef, Request).
