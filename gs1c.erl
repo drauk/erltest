@@ -1,4 +1,4 @@
-% src/erlang/gs1c.erl   2018-3-5   Alan U. Kennington.
+% src/erlang/gs1c.erl   2018-3-6   Alan U. Kennington.
 % Testing the Erlang/OTP gen_server concept.
 % Here the user-interface and server processes are separate, to investigate
 % what happens when the advice in the documentation is _not_ followed!
@@ -8,7 +8,7 @@
 % The basic user access (client) functions are in Module A: gs1a.erl.
 % The gen_server callback handlers are in Module B: gs1b.erl.
 % The "real" services are in Module C.
-% So it goes: A <--> gen_server <--> B <--> C.
+% Call chain: Erlang shell <==> A <==> gen_server <- -> daemon <==> B <==> C.
 
 -module(gs1c).
 
@@ -21,7 +21,7 @@
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 channels() ->
     Allocated = [],
-    Free = lists:seq(1,100),
+    Free = lists:seq(1, 100),
     { Allocated, Free }.
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
