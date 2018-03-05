@@ -21,3 +21,5 @@ My Erlang/OTP/wxErlang experiments.
 * The GS-daemon is called the "gen_server" in the Erlang/OTP documentation.
 * Communication between the GS-module and GS-daemon uses inter-process messages.
 * The other links use plain function calls.
+* The Erlang/OTP documentation recommends putting A, B and C in a single module.
+* But then it is clear as mud how the whole system works.
