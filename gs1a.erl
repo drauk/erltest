@@ -4,18 +4,30 @@
 % what happens when the advice in the documentation is _not_ followed!
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Call chain: Erlang shell <==> A <==> GS-module <- -> GS-daemon <==> B <==> C.
-% Module A: gs1a.erl
-% Module B: gs1b.erl
-% Module C: gs1c.erl
+% Erlang shell: erl
+% Module A:     gs1a.erl
+% GS-module:    gen_server.erl
+% GS-daemon:    proc_lib.erl        [the "gen_server" process]
+% Module B:     gs1b.erl            [the "callback module"]
+% Module C:     gs1c.erl
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % The gen_server:start_link/4 function starts a daemon process which
 % has a receive-loop which waits for messages sent to it by the
 % gen_server:call/2 and gen_server:cast/2 functions.
+% The start and start_link functions are actually in proc_lib.erl.
+% See http://erlang.org/doc/man/proc_lib.html#start-3
+% The proc_lib.erl functions spawn processes using the spawn BIFs.
+% http://erlang.org/doc/man/erlang.html#spawn-1
+% http://erlang.org/doc/man/erlang.html#spawn_link-1
+% http://erlang.org/doc/man/erlang.html#spawn_monitor-1
+% http://erlang.org/doc/man/erlang.html#spawn_opt-2
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % The gen_server:call/2 function waits until a response is received from
 % "client functions" in Module B.
 % The "gen_server <- -> daemon" uses inter-process messaging.
-% The documentation calls the daemon a "gen_server".
+% The documentation calls the daemon a "gen_server process".
 % See http://erlang.org/doc/design_principles/gen_server_concepts.html#id60670
+% See http://erlang.org/doc/man/gen_server.html
 %==============================================================================
 % Module A.
 % This module provides the basic user access functions.
