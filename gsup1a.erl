@@ -30,6 +30,7 @@
 % 3> i().
 % [....]
 %
+% <0.62.0>              supervisor:gsup1b/1                    233      166    0
 % gsup1reg              gen_server:loop/7                       10
 % <0.63.0>              gs1b:init/1                            233      131    0
 % gs1reg1               gen_server:loop/7                       10
