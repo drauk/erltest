@@ -17,6 +17,29 @@
 % The documentation calls the daemon a "gen_server".
 % See http://erlang.org/doc/design_principles/gen_server_concepts.html#id60670
 %==============================================================================
+% Module A.
+% This module provides the basic user access functions.
+% The services provided via gen_server are in Module B: gs1b.erl.
+
+-module(gs1a).
+
+% Note that this user-interface module does _not_ have gen_server behaviour!!!
+% Gen_server: http://erlang.org/doc/man/gen_server.html
+% Gen_server: http://erlang.org/doc/design_principles/gen_server_concepts.html
+% Behaviours: http://erlang.org/doc/design_principles/des_princ.html#id63247
+% -behaviour(gen_server).
+
+% The main start-up call.
+-export([start_link/0]).
+
+% Some services for the Erlang shell.
+-export([alloc/0, free/1, stop/0]).
+
+% Make the registered name of the server _different_ to the module name.
+-define(SERVER_REG_NAME, gs1reg).       % The daemon process registration name.
+-define(SERVICE_MODULE, gs1b).          % Provides services to the daemon.
+
+%==============================================================================
 % To test modules gs1a, gs1b and gs1c:
 %
 % 1> c(gs1a).
@@ -92,29 +115,6 @@
 % Why should a supposedly stand-alone process collapse when shell errors occur?
 %
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-%==============================================================================
-% Module A.
-% This module provides the basic user access functions.
-% The services provided via gen_server are in Module B: gs1b.erl.
-
--module(gs1a).
-
-% Gen_server: http://erlang.org/doc/man/gen_server.html
-% Gen_server: http://erlang.org/doc/design_principles/gen_server_concepts.html
-% Behaviours: http://erlang.org/doc/design_principles/des_princ.html#id63247
-% Note that this user-interface module does _not_ have gen_server behaviour!!!
-% -behaviour(gen_server).
-
-% The main start-up call.
--export([start_link/0]).
-
-% Some services for the Erlang shell.
--export([alloc/0, free/1, stop/0]).
-
-% Make the registered name of the server _different_ to the module name.
--define(SERVER_REG_NAME, gs1reg).       % The daemon process registration name.
--define(SERVICE_MODULE, gs1b).          % Provides services to the daemon.
 
 %==============================================================================
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
