@@ -14,12 +14,18 @@ My Erlang/OTP/wxErlang experiments.
 1. **mobsim3.erl**: Version 3 of mobile network simulation. Added server-side display list, double buffering, window re-painting, multiple options for node appearance, and some trace filtering options.
 
 1. **gs1a.erl**, **gs1b.erl**, **gs1c.erl**: Modules A, B and C to dissect and investigate the gen_server concept.
-* Module A converts Erlang shell commands to calls to the gen_server module.
-* Module B is the call-handler module which handles the gen_server daemon's calls.
-* Module C provides some basic low-level functions to Module B for demonstration purposes.
 * The call chain is: Erlang shell <==> A <==> GS-module <--> GS-daemon <==> B <==> C.
-* The GS-daemon is called "the gen_server" in the Erlang/OTP documentation.
+  * Erlang shell: ```erl```
+  * Module A: ```gs1a.erl```
+  * GS-module: ```gen_server.erl```
+  * GS-daemon: ```proc_lib.erl``` [the "gen_server process"]
+  * Module B: ```gs1b.erl``` [the "callback module"]
+  * Module C: ```gs1c.erl```
+* Module A converts Erlang shell commands to calls to the GS-module.
+* Module B is the "callback module" which handles the GS-daemon's calls.
+* Module C provides some basic low-level functions to Module B for demonstration purposes.
+* The GS-daemon is called a "gen_server process" in the Erlang/OTP documentation.
 * Communication between the GS-module and GS-daemon uses inter-process messages.
 * The other links use plain function calls.
 * The Erlang/OTP documentation recommends putting A, B and C in a single module.
-* But then it is clear as mud how the whole system works.
+* But then it is not immediately clear how the whole system works.
