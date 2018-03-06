@@ -1,4 +1,4 @@
-% src/erlang/gs1a.erl   2018-3-6   Alan U. Kennington.
+% src/erlang/gs1a.erl   2018-3-7   Alan U. Kennington.
 % Investigating the Erlang/OTP gen_server concept.
 % Here the user-interface and service modules are separate, to find out
 % what happens when the advice in the documentation is _not_ followed!
@@ -24,7 +24,7 @@
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % The gen_server:call/2 function waits until a response is received from
 % "client functions" in Module B.
-% The "gen_server <- -> daemon" uses inter-process messaging.
+% The "GS-module <- -> GS-daemon" uses inter-process messaging.
 % The documentation calls the daemon a "gen_server process".
 % See http://erlang.org/doc/design_principles/gen_server_concepts.html#id60670
 % See http://erlang.org/doc/man/gen_server.html
@@ -42,10 +42,10 @@
 % -behaviour(gen_server).
 
 % The main start-up call.
--export([start_link/0]).
+-export([start_link/0, start_link/1]).
 
 % Some services for the Erlang shell.
--export([alloc/0, free/1, stop/0]).
+-export([alloc/0, alloc/1, free/1, free/2, stop/0, stop/1]).
 
 % Make the registered name of the server _different_ to the module name.
 -define(SERVER_REG_NAME, gs1reg).       % The daemon process registration name.
@@ -135,12 +135,14 @@
 % gen_server:start_link/4 registers the service module as ?SERVER_REG_NAME.
 % See http://erlang.org/doc/man/gen_server.html#start_link-3
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-start_link() ->
-    ServerName = {local, ?SERVER_REG_NAME},
+start_link(ServerRegName) ->
+    ServerName = {local, ServerRegName},
     Module = ?SERVICE_MODULE,
     Args = [],
     Options = [],
     gen_server:start_link(ServerName, Module, Args, Options).
+start_link() ->
+    start_link(?SERVER_REG_NAME).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % User-interface function to call the server via the gen_server module.
@@ -148,10 +150,12 @@ start_link() ->
 % See http://erlang.org/doc/man/gen_server.html#call-2
 % Return value is the reply from gs1c:alloc/1.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-alloc() ->
-    ServerRef = ?SERVER_REG_NAME,
+alloc(ServerRegName) ->
+    ServerRef = ServerRegName,
     Request = alloc,
     gen_server:call(ServerRef, Request).
+alloc() ->
+    alloc(?SERVER_REG_NAME).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % User-interface function to call the server via the gen_server module.
@@ -159,15 +163,19 @@ alloc() ->
 % See http://erlang.org/doc/man/gen_server.html#cast-2
 % Return value is "ok" because the return value of gs1c:free/2 is the State.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-free(X) ->
-    ServerRef = ?SERVER_REG_NAME,
+free(ServerRegName, X) ->
+    ServerRef = ServerRegName,
     Request = {free, X},
     gen_server:cast(ServerRef, Request).
+free(X) ->
+    free(?SERVER_REG_NAME, X).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Ask the gen_server module to stop the daemon normally.
 % http://erlang.org/doc/man/gen_server.html#stop-1
 % Can also do "stop(ServerRef, Reason, Timeout) -> ok".
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+stop(ServerRegName) ->
+    gen_server:stop(ServerRegName).
 stop() ->
-    gen_server:stop(?SERVER_REG_NAME).
+    stop(?SERVER_REG_NAME).
