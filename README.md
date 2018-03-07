@@ -15,8 +15,8 @@ My gen_server learning experiments.
     * Erlang shell: `erl`
     * Module A: `gs1a.erl`
     * GS-module: `gen_server.erl`
-    * GS-daemon: `proc_lib.erl` [the "gen_server process"]
-    * Module B: `gs1b.erl` [the "callback module"]
+    * GS-daemon: `proc_lib.erl` (the "gen_server process")
+    * Module B: `gs1b.erl` (the "callback module")
     * Module C: `gs1c.erl`
   * Module A converts Erlang shell commands to calls to the GS-module.
   * Module B is the "callback module" which handles the GS-daemon's calls.
@@ -25,11 +25,11 @@ My gen_server learning experiments.
   * Communication between the GS-module and GS-daemon uses inter-process messages.
   * The other links use plain function calls.
   * The Erlang/OTP documentation recommends putting A, B and C in a single module.
-  * But then it is not immediately clear how the whole system works.
+  * But splitting into multiple files demonstrates more clearly how the system works.
 * **gsup1a.erl**, **gsup1b.erl**: Modules SV-A and SV-B to supervise the GS-daemon.
   * The call chain is: Erlang shell <==> SV-A <==> SV-module <--> SV-daemon <==> SV-B.
     * Erlang shell: `erl`
     * Module SV-A: `gsup1a.erl`
     * SV-module: `supervisor.erl`
-    * SV-daemon: `proc_lib.erl` [the supervisor gen_server process]
-    * Module SV-B: `gsup1b.erl` [the supervisor's "callback module"]
+    * SV-daemon: `proc_lib.erl` (the supervisor gen_server process)
+    * Module SV-B: `gsup1b.erl` (the supervisor's "callback module")
