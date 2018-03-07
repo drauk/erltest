@@ -23,9 +23,9 @@ erlfiles: .erlfiles
 
 # Show how many lines of code are in the erlang source files.
 wc:
-	@echo "-- All lines of Erlang code."
+	@echo "-- All lines/words/chars of Erlang code."
 	@wc *.erl
 	@echo "-- Comment lines in Erlang code."
-	@egrep '^ *$$|^ *%' *.erl | wc
+	@egrep '^ *$$|^ *%' *.erl | wc -l
 	@echo "-- Non-comment lines in Erlang code."
-	@egrep -v '^ *$$|^ *%' *.erl | wc
+	@egrep -v '^ *$$|^ *%' *.erl | wc -l
