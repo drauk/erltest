@@ -33,3 +33,5 @@ My gen_server learning experiments.
     * SV-module: `supervisor.erl`
     * SV-daemon: `proc_lib.erl` (the supervisor gen_server process)
     * Module SV-B: `gsup1b.erl` (the supervisor's "callback module")
+
+For further details, download and view the `README.html` file.
