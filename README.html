@@ -1,0 +1,192 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- src/erlang/README.html   2018-3-7   Alan U. Kennington. -->
+
+<html lang="en"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>erltest: Some Erlang/OTP experiments</title>
+<link rel="shortcut icon" href="dg_icon1.ico">
+<style type="text/css"><!--
+a:link { text-decoration:none; color:#0000FF; }
+/* Note: "visited" must appear before "hover" here. I don't know why!!! */
+a:visited { text-decoration:none; color:#D00000; }
+a:hover { text-decoration:none; color:#009000; }
+body { font-family:"Liberation Sans",arial,verdana,helvetica,sans-serif;
+ background-color:#f0f8ce; }
+td, th { padding-left:3pt; padding-right:3pt; }
+td.bookpart { padding-left:3pt; padding-right:3pt;
+ background-color:#f7f2c8; white-space:nowrap;
+ text-align:center; font-weight:bold; }
+td.hyper { padding-left:3pt; padding-right:3pt; vertical-align:text-top; }
+td.topic, th.topic { padding-left:3pt; padding-right:3pt;
+ background-color:#e7e2b8; white-space:nowrap; }
+td.items, th.items { padding-left:3pt; padding-right:3pt;
+ background-color:#dbce92; font-size:90%; }
+.equation { white-space:nowrap; }
+--></style>
+</head>
+
+<body><center>
+<span style="font-size:150%;font-weight:bold;"><b>erltest</b>:
+Some Erlang/OTP experiments</span><br>
+Alan U. Kennington<br>
+<span style="font-size:90%;">(work in progress)</span><br>
+</center>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<p>Some <a href="https://www.erlang.org/docs">Erlang</a>/OTP experiments.
+<ul>
+<li><b>test1.erl</b>:
+Some trivial exercises with Erlang functions.
+
+<li><b>proc1.erl</b>:
+Some trivial distributed Erlang processes, including a Poisson process.
+</ul>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<p>Some <a href="http://erlang.org/doc/apps/wx/index.html">wxErlang</a>
+experiments.
+<ul>
+<li><b>wx1.erl</b>:
+A minimal wxErlang application to see how it works.
+
+<li><b>mobsim1.erl</b>:
+A trivial mobile object simulation using wxErlang.
+
+<li><b>mobsim2.erl</b>:
+Development module for simulation of a simple mobile network.
+
+<li><b>mobsim3.erl</b>:
+Version 3 of mobile network simulation. Added server-side display list, double
+buffering, window re-painting, multiple options for node appearance, and some
+trace filtering options.
+</ul>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<p>Some <a href="http://erlang.org/doc/man/gen_server.html">gen_server</a>
+experiments.
+<ul>
+<li><b>gs1a.erl</b>, <b>gs1b.erl</b>, <b>gs1c.erl</b>:
+Modules A, B and C to dissect and investigate the gen_server concept.
+
+<ul>
+<li>The call chain is:<br>
+<span class=equation>Erlang shell &lt;==&gt; A &lt;==&gt; GS-module &lt;--&gt;
+GS-daemon &lt;==&gt; B &lt;==&gt; C.</span>
+
+<ul>
+<li>Erlang shell: <tt>erl</tt>
+<li>Module A: <tt>gs1a.erl</tt>
+<li>GS-module: <tt>gen_server.erl</tt>
+<li>GS-daemon: <tt>proc_lib.erl</tt> [the <q>gen_server process</q>]
+<li>Module B: <tt>gs1b.erl</tt> [the <q>callback module</q>]
+<li>Module C: <tt>gs1c.erl</tt>
+</ul>
+
+<li>Module A converts Erlang shell commands to calls to the GS-module.<br>
+
+Module B is the <q>callback module</q> which handles the GS-daemon's calls.<br>
+
+Module C provides some basic low-level functions to Module B for demonstration
+purposes.<br>
+
+<li>The GS-daemon is called a <q>gen_server process</q> in the Erlang/OTP
+documentation.
+
+<li>Communication between the GS-module and GS-daemon uses inter-process
+messages.<br>
+
+The other links use plain function calls.<br>
+
+<li>The Erlang/OTP documentation recommends putting A, B and C in a single
+module.<br>
+
+But then it is not immediately clear how the whole system works.<br>
+</ul>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<li><b>gsup1a.erl</b>, <b>gsup1b.erl</b>:
+Modules SV-A and SV-B to <a
+href="http://erlang.org/doc/man/supervisor.html">supervise</a> the GS-daemon.
+<ul>
+<li>The supervisor's own call chain is:<br>
+<span class=equation>Erlang shell &lt;==&gt; SV-A &lt;==&gt; SV-module
+&lt;--&gt; SV-daemon &lt;==&gt; SV-B.</span>
+
+<ul>
+<li>Erlang shell: <tt>erl</tt>
+
+<li>Module SV-A: <tt>gsup1a.erl</tt>
+
+<li>SV-module: <tt>supervisor.erl</tt>
+
+<li>SV-daemon: <tt>proc_lib.erl</tt> [the supervisor gen_server process]
+
+<li>Module SV-B: <tt>gsup1b.erl</tt> [the supervisor's <q>callback module</q>]
+</ul>
+
+<!-- - - - - - - - - - - - - - - - -->
+<li>The supervisor's initialization sequence is as follows. (Correctness not
+guaranteed.)
+<ol>
+<li>User (Erlang shell) calls <tt>gsup1a:start_link/0</tt>.
+
+<li><tt>gsup1a:start_link/0</tt> calls <tt>supervisor:start_link/3</tt> with
+these parameters.
+<ul>
+<li>Supervisor registered name: <tt>gsup1reg</tt>
+<li>Supervisor callback module: <tt>gsup1b</tt>
+</ul>
+
+<li><tt>supervisor:start_link/3</tt> spawns a gen_server, and registers it as
+<tt>gsup1reg</tt>.
+
+<li>The process <tt>gsup1reg</tt> calls <tt>gsup1b:init/1</tt>.
+
+<li><tt>gsup1b:init/1</tt> returns a list of child processes to be
+supervised.<br>
+
+In this case, there is only one child process on the list, which has the
+following specifications.
+<ul>
+<li>Child ID: <tt>gs1id1</tt>
+<li>Child user module: <tt>gs1a</tt>
+<li>Child user module entry point: <tt>start_link/1</tt>
+<li>Child registered name: <tt>gs1reg1</tt>
+<li>Child callback module: <tt>gs1b</tt>
+</ul>
+
+<li>The process <tt>gsup1reg</tt> calls <tt>gs1a:start_link/1</tt>.
+
+<li>The function <tt>gs1a:start_link/1</tt> calls
+<tt>gen_server:start_link/3</tt> with parameters:
+<ul>
+<li>Registered name: <tt>gs1reg1</tt>
+<li>Callback module: <tt>gs1b</tt>
+</ul>
+
+(<tt>gs1a:start_link/1</tt> obtains the registered name from the function
+argument passed by the process <tt>gsup1reg</tt>.)
+
+<li><tt>gen_server:start_link/3</tt> spawns a gen_server process, and registers
+it as <tt>gs1reg1</tt>.
+
+<li>The process <tt>gs1reg1</tt> calls <tt>gs1b:init/1</tt>.
+
+<li>The function <tt>gs1b:init/1</tt> returns the initial state for process
+<tt>gs1reg1</tt>.
+
+<li>The child process <tt>gs1reg1</tt> is included in the supervisor's child
+list with the ID <tt>gs1id1</tt>.
+</ol>
+
+That's a brief outline anyway!
+
+</ul>
+</ul>
+
+<p><hr>
+<a href="http://validator.w3.org/check?uri=referer">W3C markup
+validation</a>.<br>
+
+</body></html>
