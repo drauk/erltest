@@ -22,6 +22,7 @@
 % The "SV-module <- -> SV-daemon" link uses inter-process messaging.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Test: [It worked the first time!!!]
 % 1> gsup1a:start_link().
 % {ok,<0.62.0>}
@@ -51,6 +52,78 @@
 % {ok,<0.72.0>}
 % 10> gs1a:alloc(gs1reg1).
 % 1
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Test with 10 children.
+% 1> gsup1a:start_link(10).
+% gsup1b:init/1: Nprocs = 10
+% gsup1b:init/1: ChildSpecs = [#{type => worker,
+%                                start => {gs1a,start_link,[gs1reg1]},
+%                                shutdown => 5000,restart => permanent,
+%                                modules => [gs1b],
+%                                id => gs1id1},
+%                              #{type => worker,
+%                                start => {gs1a,start_link,[gs1reg2]},
+%                                shutdown => 5000,restart => permanent,
+%                                modules => [gs1b],
+%                                id => gs1id2},
+% [....]
+%                              #{type => worker,
+%                                start => {gs1a,start_link,[gs1reg10]},
+%                                shutdown => 5000,restart => permanent,
+%                                modules => [gs1b],
+%                                id => gs1id10}]
+% {ok,<0.62.0>}
+% 2> i().
+% [....]
+%
+% <0.62.0>              supervisor:gsup1b/1                    987     1142    0
+% gsup1reg              gen_server:loop/7                       10
+% <0.63.0>              gs1b:init/1                            233      119    0
+% gs1reg1               gen_server:loop/7                       10
+% <0.64.0>              gs1b:init/1                            233      101    0
+% gs1reg2               gen_server:loop/7                       10
+% <0.65.0>              gs1b:init/1                            233      101    0
+% gs1reg3               gen_server:loop/7                       10
+% <0.66.0>              gs1b:init/1                            233      101    0
+% gs1reg4               gen_server:loop/7                       10
+% <0.67.0>              gs1b:init/1                            233      101    0
+% gs1reg5               gen_server:loop/7                       10
+% <0.68.0>              gs1b:init/1                            233      101    0
+% gs1reg6               gen_server:loop/7                       10
+% <0.69.0>              gs1b:init/1                            233      101    0
+% gs1reg7               gen_server:loop/7                       10
+% <0.70.0>              gs1b:init/1                            233      101    0
+% gs1reg8               gen_server:loop/7                       10
+% <0.71.0>              gs1b:init/1                            233      101    0
+% gs1reg9               gen_server:loop/7                       10
+% <0.72.0>              gs1b:init/1                            233      101    0
+% gs1reg10              gen_server:loop/7                       10
+% [....]
+% ok
+% 3> supervisor:which_children(gsup1reg).
+% [{gs1id10,<0.72.0>,worker,[gs1b]},
+%  {gs1id9,<0.71.0>,worker,[gs1b]},
+%  {gs1id8,<0.70.0>,worker,[gs1b]},
+%  {gs1id7,<0.69.0>,worker,[gs1b]},
+%  {gs1id6,<0.68.0>,worker,[gs1b]},
+%  {gs1id5,<0.67.0>,worker,[gs1b]},
+%  {gs1id4,<0.66.0>,worker,[gs1b]},
+%  {gs1id3,<0.65.0>,worker,[gs1b]},
+%  {gs1id2,<0.64.0>,worker,[gs1b]},
+%  {gs1id1,<0.63.0>,worker,[gs1b]}]
+% 4> supervisor:count_children(gsup1reg).
+% [{specs,10},{active,10},{supervisors,0},{workers,10}]
+% 5> gs1a:alloc(gs1reg1).
+% 1
+% 6> gs1a:alloc(gs1reg1).
+% 2
+% 7> gs1a:alloc(gs1reg9).
+% 1
+% 8> gs1a:alloc(gs1reg1).
+% 3
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 %==============================================================================
 % Supervisor module A.

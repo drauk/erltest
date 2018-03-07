@@ -1,5 +1,5 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<!-- src/erlang/README.html   2018-3-7   Alan U. Kennington. -->
+<!-- src/erlang/README.html   2018-3-8   Alan U. Kennington. -->
 
 <html lang="en"><head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -160,7 +160,7 @@ following specifications.
 <li>The process <tt>gsup1reg</tt> calls <tt>gs1a:start_link/1</tt>.
 
 <li>The function <tt>gs1a:start_link/1</tt> calls
-<tt>gen_server:start_link/3</tt> with parameters:
+<tt>gen_server:start_link/4</tt> with parameters:
 <ul>
 <li>Registered name: <tt>gs1reg1</tt>
 <li>Callback module: <tt>gs1b</tt>
@@ -169,13 +169,14 @@ following specifications.
 (<tt>gs1a:start_link/1</tt> obtains the registered name from the function
 argument passed by the process <tt>gsup1reg</tt>.)
 
-<li><tt>gen_server:start_link/3</tt> spawns a gen_server process, and registers
+<li><tt>gen_server:start_link/4</tt> spawns a gen_server process, and registers
 it as <tt>gs1reg1</tt>.
 
 <li>The process <tt>gs1reg1</tt> calls <tt>gs1b:init/1</tt>.
 
 <li>The function <tt>gs1b:init/1</tt> returns the initial state for process
-<tt>gs1reg1</tt>.
+<tt>gs1reg1</tt>.<br>
+(Currently <tt>gs1b:init/1</tt> ignores its single argument.)
 
 <li>The child process <tt>gs1reg1</tt> is included in the supervisor's child
 list with the ID <tt>gs1id1</tt>.
@@ -186,6 +187,70 @@ list with the ID <tt>gs1id1</tt>.
 
 That's a brief outline anyway!
 
+<!-- - - - - - - - - - - - - - - - -->
+<li>The supervisor's initialization sequence is as follows for <i>N</i> child
+processes.
+<ol>
+<li>User (Erlang shell) calls <tt>gsup1a:start_link/1</tt> with parameter
+<i>N</i>.
+
+<li><tt>gsup1a:start_link/0</tt> calls <tt>supervisor:start_link/3</tt> with
+these parameters.
+<ul>
+<li>Supervisor registered name: <tt>gsup1reg</tt>
+<li>Supervisor callback module: <tt>gsup1b</tt>
+<li>Number <i>N</i> of child processes to be created.
+</ul>
+
+<li><tt>supervisor:start_link/3</tt> spawns a gen_server, and registers it as
+<tt>gsup1reg</tt>.
+
+<li>The process <tt>gsup1reg</tt> calls <tt>gsup1b:init/1</tt> with parameter
+<i>N</i>.
+
+<li><tt>gsup1b:init/1</tt> returns a list of <i>N</i> child processes to be
+supervised.<br>
+
+These <i>N</i> child processes have the following specifications for <i>X</i> =
+1 up to <i>N</i>.
+<ul>
+<li>Child ID: <tt>gs1id</tt><i>X</i>
+<li>Child user module: <tt>gs1a</tt>
+<li>Child user module entry point: <tt>start_link/1</tt>
+<li>Child registered name: <tt>gs1reg</tt><i>X</i>
+<li>Child callback module: <tt>gs1b</tt>
+</ul>
+
+<li>The process <tt>gsup1reg</tt> calls <tt>gs1a:start_link/1</tt> <i>N</i>
+times, with registration names <tt>gs1reg</tt><i>X</i>.
+
+<li>The function <tt>gs1a:start_link/1</tt> calls
+<tt>gen_server:start_link/4</tt> with parameters:
+<ul>
+<li>Registered name: <tt>gs1reg</tt><i>X</i>
+<li>Callback module: <tt>gs1b</tt>
+</ul>
+
+(<tt>gs1a:start_link/1</tt> obtains the registered name from the function
+argument passed by the process <tt>gsup1reg</tt>.)
+
+<li><tt>gen_server:start_link/4</tt> spawns a gen_server process, and registers
+it as <tt>gs1reg</tt><i>X</i>.
+
+<li>The process <tt>gs1reg</tt><i>X</i> calls <tt>gs1b:init/1</tt>.
+
+<li>The function <tt>gs1b:init/1</tt> returns the initial state for process
+<tt>gs1reg</tt><i>X</i>.<br>
+(Currently <tt>gs1b:init/1</tt> ignores its single argument.)
+
+<li>Each child process <tt>gs1reg</tt><i>X</i> is included in the supervisor's
+child list with the ID <tt>gs1id</tt><i>X</i>.
+
+<li>Processes <tt>gsup1reg</tt> and <tt>gs1reg</tt><i>X</i> enter a loop
+(<tt>gen_server:loop/7</tt>), and wait a while.
+</ol>
+
+<!-- - - - - - - - - - - - - - - - -->
 </ul>
 </ul>
 
