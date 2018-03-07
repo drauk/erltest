@@ -1,4 +1,4 @@
-% src/erlang/mobsim3.erl   2018-3-2   Alan U. Kennington.
+% src/erlang/mobsim3.erl   2018-3-8   Alan U. Kennington.
 % This module will simulate a mobile network using wxErlang.
 % Work In Progress!!!
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -176,6 +176,10 @@
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % PS. Apparently the ++ operator concatenates lists (and strings) much better!
 % See http://erlang.org/doc/reference_manual/expressions.html#id83040
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% PPS. Probably could also use lists:append/1 or list:append/2.
+% http://erlang.org/doc/man/lists.html#append-1
+% http://erlang.org/doc/man/lists.html#append-2
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 -ifndef(hideUnused).
 stringListCat(L) when is_list(L) ->

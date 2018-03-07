@@ -1,4 +1,4 @@
-% src/erlang/gsup1a.erl   2018-3-7   Alan U. Kennington.
+% src/erlang/gsup1a.erl   2018-3-8   Alan U. Kennington.
 % Investigating the Erlang/OTP gen_server concept with a supervisor.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Call chain: Erlang shell <==> SV-A <==> SV-module <- -> SV-daemon <==> SV-B.
@@ -53,15 +53,15 @@
 % 1
 
 %==============================================================================
-% Module A.
+% Supervisor module A.
 % This module provides the basic user access functions to the Erlang shell.
 
 -module(gsup1a).
 
 % The main start-up call.
--export([start_link/0]).
+-export([start_link/0, start_link/1]).
 
-% Some services for the Erlang shell.
+% Some more services for the Erlang shell.
 % -export([   ]).
 
 % Make the registered name of the server _different_ to the module name.
@@ -76,8 +76,10 @@
 % See http://erlang.org/doc/man/supervisor.html#start_link-2
 % Use start_link for supervised processes. Use start for standalone processes.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-start_link() ->
+start_link(Nprocs) when is_integer(Nprocs) andalso Nprocs >= 0 ->
     SupName = {local, ?SUPER_REG_NAME},
     Module = ?SUPER_SERVICE_MODULE,
-    Args = [],      % Passed to Module:init/1.
+    Args = #{ nProcs => Nprocs },       % Passed to Module:init/1.
     supervisor:start_link(SupName, Module, Args).
+start_link() ->
+    start_link(1).
