@@ -74,6 +74,7 @@
 % So the name of this function doesn't matter.
 % supervisor:start_link/3 registers the service module as ?SUPER_REG_NAME.
 % See http://erlang.org/doc/man/supervisor.html#start_link-2
+% Use start_link for supervised processes. Use start for standalone processes.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 start_link() ->
     SupName = {local, ?SUPER_REG_NAME},

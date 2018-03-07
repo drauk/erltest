@@ -130,10 +130,11 @@
 
 %==============================================================================
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% This function is called from the ERL shell.
+% This function is called from the Erlang shell or by a supervisor process.
 % So probably the name of the function doesn't matter.
 % gen_server:start_link/4 registers the service module as ?SERVER_REG_NAME.
 % See http://erlang.org/doc/man/gen_server.html#start_link-3
+% Use start_link for supervised processes. Use start for standalone processes.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 start_link(ServerRegName) ->
     ServerName = {local, ServerRegName},
