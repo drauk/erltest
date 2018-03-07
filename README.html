@@ -36,10 +36,10 @@ Alan U. Kennington<br>
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <p>Some <a href="https://www.erlang.org/docs">Erlang</a>/OTP experiments.
 <ul>
-<li><b>test1.erl</b>:
+<li><b><a href="test1.erl">test1.erl</a></b>:
 Some trivial exercises with Erlang functions.
 
-<li><b>proc1.erl</b>:
+<li><b><a href="proc1.erl">proc1.erl</a></b>:
 Some trivial distributed Erlang processes, including a Poisson process.
 </ul>
 
@@ -47,16 +47,16 @@ Some trivial distributed Erlang processes, including a Poisson process.
 <p>Some <a href="http://erlang.org/doc/apps/wx/index.html">wxErlang</a>
 experiments.
 <ul>
-<li><b>wx1.erl</b>:
+<li><b><a href="wx1.erl">wx1.erl</a></b>:
 A minimal wxErlang application to see how it works.
 
-<li><b>mobsim1.erl</b>:
+<li><b><a href="mobsim1.erl">mobsim1.erl</a></b>:
 A trivial mobile object simulation using wxErlang.
 
-<li><b>mobsim2.erl</b>:
+<li><b><a href="mobsim2.erl">mobsim2.erl</a></b>:
 Development module for simulation of a simple mobile network.
 
-<li><b>mobsim3.erl</b>:
+<li><b><a href="mobsim3.erl">mobsim3.erl</a></b>:
 Version 3 of mobile network simulation. Added server-side display list, double
 buffering, window re-painting, multiple options for node appearance, and some
 trace filtering options.
@@ -66,7 +66,8 @@ trace filtering options.
 <p>Some <a href="http://erlang.org/doc/man/gen_server.html">gen_server</a>
 experiments.
 <ul>
-<li><b>gs1a.erl</b>, <b>gs1b.erl</b>, <b>gs1c.erl</b>:
+<li><b><a href="gs1a.erl">gs1a.erl</a></b>, <b><a
+href="gs1b.erl">gs1b.erl</a></b>, <b><a href="gs1c.erl">gs1c.erl</a></b>:
 Modules A, B and C to dissect and investigate the gen_server concept.
 
 <ul>
@@ -105,7 +106,8 @@ But then it is not immediately clear how the whole system works.<br>
 </ul>
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-<li><b>gsup1a.erl</b>, <b>gsup1b.erl</b>:
+<li><b><a href="gsup1a.erl">gsup1a.erl</a></b>, <b><a
+href="gsup1b.erl">gsup1b.erl</a></b>:
 Modules SV-A and SV-B to <a
 href="http://erlang.org/doc/man/supervisor.html">supervise</a> the GS-daemon.
 <ul>
@@ -126,8 +128,8 @@ href="http://erlang.org/doc/man/supervisor.html">supervise</a> the GS-daemon.
 </ul>
 
 <!-- - - - - - - - - - - - - - - - -->
-<li>The supervisor's initialization sequence is as follows. (Correctness not
-guaranteed.)
+<li>The supervisor's initialization sequence is as follows for a single child
+process.
 <ol>
 <li>User (Erlang shell) calls <tt>gsup1a:start_link/0</tt>.
 
@@ -178,6 +180,9 @@ it as <tt>gs1reg1</tt>.
 
 <li>The child process <tt>gs1reg1</tt> is included in the supervisor's child
 list with the ID <tt>gs1id1</tt>.
+
+<li>Processes <tt>gsup1reg</tt> and <tt>gs1reg1</tt> both enter a loop
+(<tt>gen_server:loop/7</tt>), and wait a while.
 </ol>
 
 That's a brief outline anyway!
