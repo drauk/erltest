@@ -1,4 +1,4 @@
-% src/erlang/gsup1a.erl   2018-3-8   Alan U. Kennington.
+% src/erlang/gsup1a.erl   2018-3-9   Alan U. Kennington.
 % Investigating the Erlang/OTP gen_server concept with a supervisor.
 
 %==============================================================================
@@ -8,7 +8,7 @@
 -module(gsup1a).
 
 % The main start-up calls.
--export([start_link/0, start_link/1, start_child/1]).
+-export([start_link/0, start_link/1, stop/0, start_child/1]).
 
 % Some more services for the Erlang shell.
 -export([count_children/0, which_children/0, get_childspec/1,
@@ -160,6 +160,12 @@ start_link(Nprocs) when is_integer(Nprocs) andalso Nprocs >= 0 ->
     supervisor:start_link(SupName, Module, Args).
 start_link() ->
     start_link(1).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% http://erlang.org/doc/man/proc_lib.html#stop-1
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+stop() ->
+    proc_lib:stop(?SUPER_REG_NAME).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Start a single child process.
