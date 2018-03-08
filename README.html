@@ -106,13 +106,14 @@ But then it is not immediately clear how the whole system works.<br>
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <li><b><a href="gsup1a.erl">gsup1a.erl</a></b>, <b><a
-href="gsup1b.erl">gsup1b.erl</a></b>:
-Modules SV-A and SV-B to <a
+href="gsup1b.erl">gsup1b.erl</a></b>, <b><a
+href="gsup1c.erl">gsup1c.erl</a></b>:
+Modules SV-A, SV-B and SV-C to <a
 href="http://erlang.org/doc/man/supervisor.html">supervise</a> the GS-daemon.
 <ul>
 <li>The supervisor's own call chain is:<br>
 <span class=equation>Erlang shell &lt;==&gt; SV-A &lt;==&gt; SV-module
-&lt;--&gt; SV-daemon &lt;==&gt; SV-B.</span>
+&lt;--&gt; SV-daemon &lt;==&gt; SV-B &lt;==&gt; SV-C.</span>
 
 <ul>
 <li>Erlang shell: <tt>erl</tt>
@@ -124,6 +125,8 @@ href="http://erlang.org/doc/man/supervisor.html">supervise</a> the GS-daemon.
 <li>SV-daemon: <tt>proc_lib.erl</tt> [the supervisor gen_server process]
 
 <li>Module SV-B: <tt>gsup1b.erl</tt> [the supervisor's <q>callback module</q>]
+
+<li>Module SV-C: <tt>gsup1c.erl</tt> [basic common services for SV-A and SV-B]
 </ul>
 
 <!-- - - - - - - - - - - - - - - - -->

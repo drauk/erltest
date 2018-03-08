@@ -1,10 +1,10 @@
-# src/erlang/makefile.pub   2018-3-7   Alan U. Kennington.
+# src/erlang/makefile.pub   2018-3-8   Alan U. Kennington.
 # Some Erlang/OTP testing.
 
 ERL_FILES = test1.erl proc1.erl wx1.erl \
 	mobsim1.erl mobsim2.erl mobsim3.erl \
 	gs1a.erl gs1b.erl gs1c.erl \
-	gsup1a.erl gsup1b.erl
+	gsup1a.erl gsup1b.erl gsup1c.erl
 
 BEAM_FILES = $(patsubst %.erl,%.beam,$(ERL_FILES))
 

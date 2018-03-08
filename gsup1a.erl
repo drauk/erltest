@@ -18,12 +18,10 @@
 -define(SUPER_REG_NAME, gsup1reg).      % The daemon process registration name.
 -define(SUPER_SERVICE_MODULE, gsup1b).  % Provides services to the daemon.
 
-% These definitions must match gsup1b.erl.
--define(CHILD_ID_BASE, gs1id).          % Child process id base.
--define(CHILD_REG_BASE, gs1reg).        % Child process registration name base.
-
 %==============================================================================
-% Call chain: Erlang shell <==> SV-A <==> SV-module <- -> SV-daemon <==> SV-B.
+% Call chain:
+% Erlang shell <==> SV-A <==> SV-module <- -> SV-daemon <==> SV-B <==> SV-C.
+% However, SV-A also invokes functions in SV-C.
 % Erlang shell: erl
 % Module SV-A:  gsup1a.erl
 % SV-module:    supervisor.erl
@@ -196,12 +194,7 @@ which_children() ->
 % http://erlang.org/doc/man/supervisor.html#get_childspec-2
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 get_childspec(Nproc) when is_integer(Nproc) ->
-    % http://erlang.org/doc/man/erlang.html#atom_to_list-1
-    % http://erlang.org/doc/man/erlang.html#integer_to_list-1
-    % http://erlang.org/doc/man/erlang.html#list_to_atom-1
-    ChildId = list_to_atom(atom_to_list(?CHILD_ID_BASE)
-            ++ integer_to_list(Nproc)),
-    supervisor:get_childspec(?SUPER_REG_NAME, ChildId);
+    supervisor:get_childspec(?SUPER_REG_NAME, gsup1c:childId(Nproc));
 get_childspec(ChildId) ->
     supervisor:get_childspec(?SUPER_REG_NAME, ChildId).
 
@@ -212,12 +205,7 @@ get_childspec(ChildId) ->
 % This only works if the child process is not running.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 delete_child(Nproc) when is_integer(Nproc) ->
-    % http://erlang.org/doc/man/erlang.html#atom_to_list-1
-    % http://erlang.org/doc/man/erlang.html#integer_to_list-1
-    % http://erlang.org/doc/man/erlang.html#list_to_atom-1
-    ChildId = list_to_atom(atom_to_list(?CHILD_ID_BASE)
-            ++ integer_to_list(Nproc)),
-    supervisor:delete_child(?SUPER_REG_NAME, ChildId);
+    supervisor:delete_child(?SUPER_REG_NAME, gsup1c:childId(Nproc));
 delete_child(ChildId) ->
     supervisor:delete_child(?SUPER_REG_NAME, ChildId).
 
@@ -234,12 +222,7 @@ delete_child(ChildId) ->
 %   "restart_child/2". Use "delete_child/2" to remove the child specification.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 terminate_child(Nproc) when is_integer(Nproc) ->
-    % http://erlang.org/doc/man/erlang.html#atom_to_list-1
-    % http://erlang.org/doc/man/erlang.html#integer_to_list-1
-    % http://erlang.org/doc/man/erlang.html#list_to_atom-1
-    ChildId = list_to_atom(atom_to_list(?CHILD_ID_BASE)
-            ++ integer_to_list(Nproc)),
-    supervisor:terminate_child(?SUPER_REG_NAME, ChildId);
+    supervisor:terminate_child(?SUPER_REG_NAME, gsup1c:childId(Nproc));
 terminate_child(ChildId) ->
     supervisor:terminate_child(?SUPER_REG_NAME, ChildId).
 
@@ -264,11 +247,6 @@ terminate_child(ChildId) ->
 %   where "Error" is a term containing information about the error.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 restart_child(Nproc) when is_integer(Nproc) ->
-    % http://erlang.org/doc/man/erlang.html#atom_to_list-1
-    % http://erlang.org/doc/man/erlang.html#integer_to_list-1
-    % http://erlang.org/doc/man/erlang.html#list_to_atom-1
-    ChildId = list_to_atom(atom_to_list(?CHILD_ID_BASE)
-            ++ integer_to_list(Nproc)),
-    supervisor:restart_child(?SUPER_REG_NAME, ChildId);
+    supervisor:restart_child(?SUPER_REG_NAME, gsup1c:childId(Nproc));
 restart_child(ChildId) ->
     supervisor:restart_child(?SUPER_REG_NAME, ChildId).
