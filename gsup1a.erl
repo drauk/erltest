@@ -7,12 +7,12 @@
 
 -module(gsup1a).
 
-% The main start-up call.
--export([start_link/0, start_link/1]).
+% The main start-up calls.
+-export([start_link/0, start_link/1, start_child/1]).
 
 % Some more services for the Erlang shell.
 -export([count_children/0, which_children/0, get_childspec/1,
- delete_child/1, terminate_child/1, restart_child/1]).
+ terminate_child/1, restart_child/1, delete_child/1]).
 
 % Make the registered name of the server _different_ to the module name.
 -define(SUPER_REG_NAME, gsup1reg).      % The daemon process registration name.
@@ -162,6 +162,13 @@ start_link() ->
     start_link(1).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Start a single child process.
+% http://erlang.org/doc/man/supervisor.html#start_child-2
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+start_child(Nproc) when is_integer(Nproc) andalso Nproc >= 1 ->
+    supervisor:start_child(?SUPER_REG_NAME, gsup1c:childSpec(Nproc)).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Count the child processes.
 % http://erlang.org/doc/man/supervisor.html#count_children-1
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -193,21 +200,10 @@ which_children() ->
 % Get a child specification.
 % http://erlang.org/doc/man/supervisor.html#get_childspec-2
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-get_childspec(Nproc) when is_integer(Nproc) ->
+get_childspec(Nproc) when is_integer(Nproc) andalso Nproc >= 1 ->
     supervisor:get_childspec(?SUPER_REG_NAME, gsup1c:childId(Nproc));
 get_childspec(ChildId) ->
     supervisor:get_childspec(?SUPER_REG_NAME, ChildId).
-
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% Delete a single child process.
-% http://erlang.org/doc/man/supervisor.html#delete_child-2
-% http://erlang.org/doc/man/supervisor.html#type-child_id
-% This only works if the child process is not running.
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-delete_child(Nproc) when is_integer(Nproc) ->
-    supervisor:delete_child(?SUPER_REG_NAME, gsup1c:childId(Nproc));
-delete_child(ChildId) ->
-    supervisor:delete_child(?SUPER_REG_NAME, ChildId).
 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Terminate a single child process.
@@ -221,7 +217,7 @@ delete_child(ChildId) ->
 %   The child process can also be restarted explicitly by calling
 %   "restart_child/2". Use "delete_child/2" to remove the child specification.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-terminate_child(Nproc) when is_integer(Nproc) ->
+terminate_child(Nproc) when is_integer(Nproc) andalso Nproc >= 1 ->
     supervisor:terminate_child(?SUPER_REG_NAME, gsup1c:childId(Nproc));
 terminate_child(ChildId) ->
     supervisor:terminate_child(?SUPER_REG_NAME, ChildId).
@@ -246,7 +242,19 @@ terminate_child(ChildId) ->
 %   erroneous value, or if it fails, the function returns "{error,Error}",
 %   where "Error" is a term containing information about the error.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-restart_child(Nproc) when is_integer(Nproc) ->
+restart_child(Nproc) when is_integer(Nproc) andalso Nproc >= 1 ->
     supervisor:restart_child(?SUPER_REG_NAME, gsup1c:childId(Nproc));
 restart_child(ChildId) ->
     supervisor:restart_child(?SUPER_REG_NAME, ChildId).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Delete a single child process.
+% http://erlang.org/doc/man/supervisor.html#delete_child-2
+% http://erlang.org/doc/man/supervisor.html#type-child_id
+% This only works if the child process is not running.
+% So you must call terminate_child/1 first.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+delete_child(Nproc) when is_integer(Nproc) andalso Nproc >= 1 ->
+    supervisor:delete_child(?SUPER_REG_NAME, gsup1c:childId(Nproc));
+delete_child(ChildId) ->
+    supervisor:delete_child(?SUPER_REG_NAME, ChildId).
