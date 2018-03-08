@@ -1,4 +1,4 @@
-# src/erlang/makefile.pub   2018-3-8   Alan U. Kennington.
+# src/erlang/makefile.pub   2018-3-9   Alan U. Kennington.
 # Some Erlang/OTP testing.
 
 ERL_FILES = test1.erl proc1.erl wx1.erl \
@@ -24,8 +24,8 @@ erlfiles: .erlfiles
 # Show how many lines of code are in the erlang source files.
 wc:
 	@echo "-- All lines/words/chars of Erlang code."
-	@wc *.erl
+	@wc $(ERL_FILES)
 	@echo "-- Comment lines in Erlang code."
-	@egrep '^ *$$|^ *%' *.erl | wc -l
+	@egrep '^ *$$|^ *%' $(ERL_FILES) | wc -l
 	@echo "-- Non-comment lines in Erlang code."
-	@egrep -v '^ *$$|^ *%' *.erl | wc -l
+	@egrep -v '^ *$$|^ *%' $(ERL_FILES) | wc -l
