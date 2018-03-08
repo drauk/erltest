@@ -11,7 +11,7 @@ My wxErlang learning experiments.
 
 My gen_server learning experiments.
 * **gs1a.erl**, **gs1b.erl**, **gs1c.erl**: Modules A, B and C to dissect and investigate the gen_server concept.
-  * The call chain is: Erlang shell <==> A <==> GS-module <--> GS-daemon <==> B <==> C.
+  * Call chain: Erlang shell <==> A <==> GS-module <--> GS-daemon <==> B <==> C.
     * Erlang shell: `erl`
     * Module A: `gs1a.erl`
     * GS-module: `gen_server.erl`
@@ -26,12 +26,13 @@ My gen_server learning experiments.
   * The other links use plain function calls.
   * The Erlang/OTP documentation recommends putting A, B and C in a single module.
   * But splitting into multiple files demonstrates more clearly how the system works.
-* **gsup1a.erl**, **gsup1b.erl**: Modules SV-A and SV-B to supervise the GS-daemon.
-  * The call chain is: Erlang shell <==> SV-A <==> SV-module <--> SV-daemon <==> SV-B.
+* **gsup1a.erl**, **gsup1b.erl**, **gsup1c.erl**: Modules SV-A, SV-B and SV-C to supervise the GS-daemon.
+  * Call chain: Erlang shell <==> SV-A <==> SV-module <--> SV-daemon <==> SV-B <==> SV-C.
     * Erlang shell: `erl`
     * Module SV-A: `gsup1a.erl`
     * SV-module: `supervisor.erl`
     * SV-daemon: `proc_lib.erl` (the supervisor gen_server process)
     * Module SV-B: `gsup1b.erl` (the supervisor's "callback module")
+    * Module SV-C: `gsup1c.erl` (common functions for SV-A and SV-B)
 
 For further details, download and view the `README.html` file.
