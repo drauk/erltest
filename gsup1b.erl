@@ -1,6 +1,7 @@
 % src/erlang/gsup1b.erl   2018-3-8   Alan U. Kennington.
 % Testing the Erlang/OTP gen_server concept with a supervisor.
 
+%==============================================================================
 % Supervisor module B.
 % This is the supervisor "callback module" which contains call handlers.
 % Roughly speaking, Module A calls gen_server, which calls Module B.
@@ -26,12 +27,21 @@
 -define(CHILD_ID_NAME1, gs1id1).        % Child process id.
 -define(CHILD_REG_NAME1, gs1reg1).      % Child process registration name.
 
+% These definitions must match gsup1a.erl.
 -define(CHILD_ID_BASE, gs1id).          % Child process id base.
 -define(CHILD_REG_BASE, gs1reg).        % Child process registration name base.
 
 %==============================================================================
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Create one child-process specification.
+% http://erlang.org/doc/man/supervisor.html
+% Quote:
+%   "modules" is used by the release handler during code replacement to
+%   determine which processes are using a certain module. As a rule of thumb,
+%   if the child process is a "supervisor", "gen_server" or, "gen_statem",
+%   this is to be a list with one element "[Module]", where "Module" is the
+%   callback module. If the child process is an event manager ("gen_event")
+%   with a dynamic set of callback modules, value "dynamic" must be used.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 childSpec(Nproc) when is_integer(Nproc) andalso Nproc >= 1 ->
     % http://erlang.org/doc/man/erlang.html#atom_to_list-1
@@ -43,6 +53,7 @@ childSpec(Nproc) when is_integer(Nproc) andalso Nproc >= 1 ->
             ++ integer_to_list(Nproc)),
 
     % A child process which is to be supervised.
+    % http://erlang.org/doc/man/supervisor.html#type-child_spec
     #{
         id => ChildId,
         start => { ?CHILD_USER_MODULE, start_link, [ChildReg] },
@@ -94,5 +105,10 @@ init(Args) when is_map(Args) ->
 
     % The processes to be supervised.
     ChildSpecs = childSpecs(Nprocs),
-    io:format("gsup1b:init/1: ChildSpecs = ~p~n", [ChildSpecs]),
+    io:format("gsup1b:init/1: ChildSpecs =~n~p~n", [ChildSpecs]),
+
+    % http://erlang.org/doc/man/supervisor.html#check_childspecs-1
+    Check = supervisor:check_childspecs(ChildSpecs),
+    io:format("gsup1b:init/1: ChildSpecs check = ~p~n", [Check]),
+
     {ok, {SupFlags, ChildSpecs}}.

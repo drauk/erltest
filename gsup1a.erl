@@ -1,6 +1,28 @@
 % src/erlang/gsup1a.erl   2018-3-8   Alan U. Kennington.
 % Investigating the Erlang/OTP gen_server concept with a supervisor.
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+%==============================================================================
+% Supervisor module A.
+% This module provides the basic user access functions to the Erlang shell.
+
+-module(gsup1a).
+
+% The main start-up call.
+-export([start_link/0, start_link/1]).
+
+% Some more services for the Erlang shell.
+-export([count_children/0, which_children/0, get_childspec/1,
+ delete_child/1, terminate_child/1, restart_child/1]).
+
+% Make the registered name of the server _different_ to the module name.
+-define(SUPER_REG_NAME, gsup1reg).      % The daemon process registration name.
+-define(SUPER_SERVICE_MODULE, gsup1b).  % Provides services to the daemon.
+
+% These definitions must match gsup1b.erl.
+-define(CHILD_ID_BASE, gs1id).          % Child process id base.
+-define(CHILD_REG_BASE, gs1reg).        % Child process registration name base.
+
+%==============================================================================
 % Call chain: Erlang shell <==> SV-A <==> SV-module <- -> SV-daemon <==> SV-B.
 % Erlang shell: erl
 % Module SV-A:  gsup1a.erl
@@ -126,22 +148,6 @@
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 %==============================================================================
-% Supervisor module A.
-% This module provides the basic user access functions to the Erlang shell.
-
--module(gsup1a).
-
-% The main start-up call.
--export([start_link/0, start_link/1]).
-
-% Some more services for the Erlang shell.
-% -export([   ]).
-
-% Make the registered name of the server _different_ to the module name.
--define(SUPER_REG_NAME, gsup1reg).      % The daemon process registration name.
--define(SUPER_SERVICE_MODULE, gsup1b).  % Provides services to the daemon.
-
-%==============================================================================
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % This function is called from the Erlang shell.
 % So the name of this function doesn't matter.
@@ -156,3 +162,113 @@ start_link(Nprocs) when is_integer(Nprocs) andalso Nprocs >= 0 ->
     supervisor:start_link(SupName, Module, Args).
 start_link() ->
     start_link(1).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Count the child processes.
+% http://erlang.org/doc/man/supervisor.html#count_children-1
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+count_children() ->
+    supervisor:count_children(?SUPER_REG_NAME).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Show info about child processes.
+% http://erlang.org/doc/man/supervisor.html#which_children-1
+% Quote:
+%   Returns a newly created list with information about all child specifications
+%   and child processes belonging to supervisor SupRef.
+% Example:
+% [{gs1id10,<0.81.0>,worker,[gs1b]},
+%  {gs1id9,<0.80.0>,worker,[gs1b]},
+%  {gs1id8,<0.79.0>,worker,[gs1b]},
+%  {gs1id7,<0.78.0>,worker,[gs1b]},
+%  {gs1id6,<0.77.0>,worker,[gs1b]},
+%  {gs1id5,<0.76.0>,worker,[gs1b]},
+%  {gs1id4,<0.75.0>,worker,[gs1b]},
+%  {gs1id3,<0.74.0>,worker,[gs1b]},
+%  {gs1id2,<0.73.0>,worker,[gs1b]},
+%  {gs1id1,<0.72.0>,worker,[gs1b]}]
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+which_children() ->
+    supervisor:which_children(?SUPER_REG_NAME).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Get a child specification.
+% http://erlang.org/doc/man/supervisor.html#get_childspec-2
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+get_childspec(Nproc) when is_integer(Nproc) ->
+    % http://erlang.org/doc/man/erlang.html#atom_to_list-1
+    % http://erlang.org/doc/man/erlang.html#integer_to_list-1
+    % http://erlang.org/doc/man/erlang.html#list_to_atom-1
+    ChildId = list_to_atom(atom_to_list(?CHILD_ID_BASE)
+            ++ integer_to_list(Nproc)),
+    supervisor:get_childspec(?SUPER_REG_NAME, ChildId);
+get_childspec(ChildId) ->
+    supervisor:get_childspec(?SUPER_REG_NAME, ChildId).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Delete a single child process.
+% http://erlang.org/doc/man/supervisor.html#delete_child-2
+% http://erlang.org/doc/man/supervisor.html#type-child_id
+% This only works if the child process is not running.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+delete_child(Nproc) when is_integer(Nproc) ->
+    % http://erlang.org/doc/man/erlang.html#atom_to_list-1
+    % http://erlang.org/doc/man/erlang.html#integer_to_list-1
+    % http://erlang.org/doc/man/erlang.html#list_to_atom-1
+    ChildId = list_to_atom(atom_to_list(?CHILD_ID_BASE)
+            ++ integer_to_list(Nproc)),
+    supervisor:delete_child(?SUPER_REG_NAME, ChildId);
+delete_child(ChildId) ->
+    supervisor:delete_child(?SUPER_REG_NAME, ChildId).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Terminate a single child process.
+% http://erlang.org/doc/man/supervisor.html#terminate_child-2
+% http://erlang.org/doc/man/supervisor.html#type-child_id
+% Quote:
+%   If the supervisor is not "simple_one_for_one", "Id" must be the child
+%   specification identifier. The process, if any, is terminated and, unless
+%   it is a temporary child, the child specification is kept by the
+%   supervisor. The child process can later be restarted by the supervisor.
+%   The child process can also be restarted explicitly by calling
+%   "restart_child/2". Use "delete_child/2" to remove the child specification.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+terminate_child(Nproc) when is_integer(Nproc) ->
+    % http://erlang.org/doc/man/erlang.html#atom_to_list-1
+    % http://erlang.org/doc/man/erlang.html#integer_to_list-1
+    % http://erlang.org/doc/man/erlang.html#list_to_atom-1
+    ChildId = list_to_atom(atom_to_list(?CHILD_ID_BASE)
+            ++ integer_to_list(Nproc)),
+    supervisor:terminate_child(?SUPER_REG_NAME, ChildId);
+terminate_child(ChildId) ->
+    supervisor:terminate_child(?SUPER_REG_NAME, ChildId).
+
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% Restart a single child process.
+% http://erlang.org/doc/man/supervisor.html#restart_child-2
+% http://erlang.org/doc/man/supervisor.html#type-child_id
+% Quote:
+%   Tells supervisor "SupRef" to restart a child process corresponding to the
+%   child specification identified by "Id". The child specification must
+%   exist, and the corresponding child process must not be running.
+%
+%   If the child process start function returns "{ok,Child}" or
+%   "{ok,Child,Info}", the pid is added to the supervisor and the function
+%   returns the same value.
+%
+%   If the child process start function returns "ignore", the pid remains set
+%   to "undefined" and the function returns "{ok,undefined}".
+%
+%   If the child process start function returns an error tuple or an
+%   erroneous value, or if it fails, the function returns "{error,Error}",
+%   where "Error" is a term containing information about the error.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+restart_child(Nproc) when is_integer(Nproc) ->
+    % http://erlang.org/doc/man/erlang.html#atom_to_list-1
+    % http://erlang.org/doc/man/erlang.html#integer_to_list-1
+    % http://erlang.org/doc/man/erlang.html#list_to_atom-1
+    ChildId = list_to_atom(atom_to_list(?CHILD_ID_BASE)
+            ++ integer_to_list(Nproc)),
+    supervisor:restart_child(?SUPER_REG_NAME, ChildId);
+restart_child(ChildId) ->
+    supervisor:restart_child(?SUPER_REG_NAME, ChildId).
