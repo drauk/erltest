@@ -1,4 +1,4 @@
-% src/erlang/gs1a.erl   2018-3-7   Alan U. Kennington.
+% src/erlang/gs1a.erl   2018-3-9   Alan U. Kennington.
 % Investigating the Erlang/OTP gen_server concept.
 % Here the user-interface and service modules are separate, to find out
 % what happens when the advice in the documentation is _not_ followed!
@@ -34,6 +34,7 @@
 % The services provided via gen_server are in Module B: gs1b.erl.
 
 -module(gs1a).
+-vsn(1).
 
 % Note that this user-interface module does _not_ have gen_server behaviour!!!
 % Gen_server: http://erlang.org/doc/man/gen_server.html

@@ -1,4 +1,4 @@
-% src/erlang/gs1c.erl   2018-3-6   Alan U. Kennington.
+% src/erlang/gs1c.erl   2018-3-9   Alan U. Kennington.
 % Testing the Erlang/OTP gen_server concept.
 % Here the user-interface and server processes are separate, to investigate
 % what happens when the advice in the documentation is _not_ followed!
@@ -11,6 +11,7 @@
 % Call chain: Erlang shell <==> A <==> GS-module <- -> GS-daemon <==> B <==> C.
 
 -module(gs1c).
+-vsn(1).
 
 -export([channels/0, alloc/1, free/2]).
 

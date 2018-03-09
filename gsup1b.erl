@@ -1,4 +1,4 @@
-% src/erlang/gsup1b.erl   2018-3-8   Alan U. Kennington.
+% src/erlang/gsup1b.erl   2018-3-9   Alan U. Kennington.
 % Testing the Erlang/OTP gen_server concept with a supervisor.
 
 %==============================================================================
@@ -11,6 +11,7 @@
 % However, SV-A also invokes functions in SV-C.
 
 -module(gsup1b).
+-vsn(1).
 
 % Behaviours: http://erlang.org/doc/design_principles/des_princ.html#id63247
 % Supervisor: http://erlang.org/doc/design_principles/sup_princ.html

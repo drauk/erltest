@@ -1,4 +1,4 @@
-% src/erlang/gsup1c.erl   2018-3-8   Alan U. Kennington.
+% src/erlang/gsup1c.erl   2018-3-9   Alan U. Kennington.
 % Testing the Erlang/OTP gen_server concept with a supervisor.
 
 %==============================================================================
@@ -9,6 +9,7 @@
 % However, SV-A also invokes functions in SV-C.
 
 -module(gsup1c).
+-vsn(1).
 
 -export([childId/1, childReg/1, childSpec/1, childSpecs/1]).
 

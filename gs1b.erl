@@ -1,4 +1,4 @@
-% src/erlang/gs1b.erl   2018-3-6   Alan U. Kennington.
+% src/erlang/gs1b.erl   2018-3-9   Alan U. Kennington.
 % Testing the Erlang/OTP gen_server concept.
 
 % Module B.
@@ -8,6 +8,7 @@
 % Call chain: Erlang shell <==> A <==> GS-module <- -> GS-daemon <==> B <==> C.
 
 -module(gs1b).
+-vsn(1).
 
 % Behaviours: http://erlang.org/doc/design_principles/des_princ.html#id63247
 % Gen_server: http://erlang.org/doc/design_principles/gen_server_concepts.html

@@ -6,13 +6,18 @@
 % This module provides the basic user access functions to the Erlang shell.
 
 -module(gsup1a).
+% http://erlang.org/doc/reference_manual/modules.html#id78271
+% http://erlang.org/doc/man/beam_lib.html#version-1
+% Try beam_lib:version/1.
+-vsn(1).
 
 % The main start-up calls.
 -export([start_link/0, start_link/1, unlink/0, stop/0, start_child/1]).
 
 % Some more services for the Erlang shell.
 -export([count_children/0, which_children/0, get_childspec/1,
- terminate_child/1, restart_child/1, delete_child/1]).
+ terminate_child/1, restart_child/1, delete_child/1,
+ modInfo/0, modVersions/0]).
 
 % Make the registered name of the server _different_ to the module name.
 -define(SUPER_REG_NAME, gsup1reg).      % The daemon process registration name.
@@ -276,3 +281,19 @@ delete_child(Nproc) when is_integer(Nproc) andalso Nproc >= 1 ->
     supervisor:delete_child(?SUPER_REG_NAME, gsup1c:childId(Nproc));
 delete_child(ChildId) ->
     supervisor:delete_child(?SUPER_REG_NAME, ChildId).
+
+modInfo() ->
+    io:format("----------- gsup1a: -----------~n~p~n", [gsup1a:module_info()]),
+    io:format("----------- gsup1b: -----------~n~p~n", [gsup1b:module_info()]),
+    io:format("----------- gsup1c: -----------~n~p~n", [gsup1c:module_info()]),
+    io:format("----------- gs1a: -----------~n~p~n", [gs1a:module_info()]),
+    io:format("----------- gs1b: -----------~n~p~n", [gs1b:module_info()]),
+    io:format("----------- gs1c: -----------~n~p~n", [gs1c:module_info()]).
+
+modVersions() ->
+    io:format("gsup1a: version ~p~n", [beam_lib:version(gsup1a)]),
+    io:format("gsup1b: version ~p~n", [beam_lib:version(gsup1b)]),
+    io:format("gsup1c: version ~p~n", [beam_lib:version(gsup1c)]),
+    io:format("gs1a: version ~p~n", [beam_lib:version(gs1a)]),
+    io:format("gs1b: version ~p~n", [beam_lib:version(gs1b)]),
+    io:format("gs1c: version ~p~n", [beam_lib:version(gs1c)]).
