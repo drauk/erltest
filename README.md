@@ -34,5 +34,7 @@ My gen_server learning experiments.
     * SV-daemon: `proc_lib.erl` (the supervisor gen_server process)
     * Module SV-B: `gsup1b.erl` (the supervisor's "callback module")
     * Module SV-C: `gsup1c.erl` (common functions for SV-A and SV-B)
+* **mobsim4a.erl**, **mobsim4b.erl**, **mobsim4c.erl**, **mobsim4d.erl**:
+  * Ported mobsim3.erl to use the wx_object behaviour module.
 
 For further details, download and view the `README.html` file.
