@@ -1,5 +1,5 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<!-- src/erlang/README.html   2018-3-8   Alan U. Kennington. -->
+<!-- src/erlang/README.html   2018-3-14   Alan U. Kennington. -->
 
 <html lang="en"><head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -255,6 +255,52 @@ child list with the ID <tt>gs1id</tt><i>X</i>.
 
 <!-- - - - - - - - - - - - - - - - -->
 </ul>
+</ul>
+
+<!-- ===================================================================== -->
+<!-- ===================================================================== -->
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<p>Some <a href="http://erlang.org/doc/man/wx_object.html">wx_object</a>
+experiments.
+<ul>
+<li><b><a href="mobsim4a.erl">mobsim4a.erl</a></b>, <b><a
+href="mobsim4b.erl">mobsim4b.erl</a></b>, <b><a
+href="mobsim4c.erl">mobsim4c.erl</a></b>, <b><a
+href="mobsim4d.erl">mobsim4d.erl</a></b>:<br>
+Modules A, B, C and D to port <a href="mobsim3.erl">mobsim3.erl</a> to the
+wx_object framework.
+
+<ul>
+<li>The call chain is:<br>
+<span class=equation>Erlang shell &lt;==&gt; A,D &lt;==&gt; WX-module &lt;--&gt;
+WX-daemon &lt;==&gt; B &lt;==&gt; C.</span>
+
+<ul>
+<li>Erlang shell: <tt>erl</tt>
+<li>Module A: <tt>mobsim4a.erl</tt>
+<li>WX-module: [the wx_object module]
+<li>WX-daemon: [the <q>wx_server client</q>]
+<li>Module B: <tt>mobsim4b.erl</tt> [the <q>callback module</q>]
+<li>Module C: <tt>mobsim4c.erl</tt> [wxWidgets functions]
+<li>Module D: <tt>mobsim4d.erl</tt> [mobile node functions]
+</ul>
+
+<li>Module A converts Erlang shell commands to calls to the WX-module.<br>
+
+Module B is the <q>callback module</q> which handles the WX-daemon's calls.<br>
+
+Module C provides wxWidgets functions to Module B to show a window frame.<br>
+
+Module D simulates some toy mobile nodes, which call the WX-daemon via the
+WX-module's functions.<br>
+
+<li>Communication between the WX-module and WX-daemon uses inter-process
+messages.<br>
+
+The other links use plain function calls.<br>
+</ul>
+
 </ul>
 
 <p><hr>
