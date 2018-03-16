@@ -1,5 +1,5 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<!-- src/erlang/README.html   2018-3-14   Alan U. Kennington. -->
+<!-- src/erlang/README.html   2018-3-16   Alan U. Kennington. -->
 
 <html lang="en"><head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -32,7 +32,8 @@ Alan U. Kennington<br>
 <span style="font-size:90%;">(work in progress)</span><br>
 </center>
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<!-- ===================================================================== -->
+
 <p>Some <a href="https://www.erlang.org/docs">Erlang</a>/OTP experiments.
 <ul>
 <li><b><a href="test1.erl">test1.erl</a></b>:
@@ -42,7 +43,8 @@ Some trivial exercises with Erlang functions.
 Some trivial distributed Erlang processes, including a Poisson process.
 </ul>
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<!-- ===================================================================== -->
+
 <p>Some <a href="http://erlang.org/doc/apps/wx/index.html">wxErlang</a>
 experiments.
 <ul>
@@ -61,7 +63,8 @@ buffering, window re-painting, multiple options for node appearance, and some
 trace filtering options.
 </ul>
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<!-- ===================================================================== -->
+
 <p>Some <a href="http://erlang.org/doc/man/gen_server.html">gen_server</a>
 experiments.
 <ul>
@@ -104,7 +107,8 @@ module.<br>
 But then it is not immediately clear how the whole system works.<br>
 </ul>
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<!-- ===================================================================== -->
+
 <li><b><a href="gsup1a.erl">gsup1a.erl</a></b>, <b><a
 href="gsup1b.erl">gsup1b.erl</a></b>, <b><a
 href="gsup1c.erl">gsup1c.erl</a></b>:
@@ -258,9 +262,7 @@ child list with the ID <tt>gs1id</tt><i>X</i>.
 </ul>
 
 <!-- ===================================================================== -->
-<!-- ===================================================================== -->
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 <p>Some <a href="http://erlang.org/doc/man/wx_object.html">wx_object</a>
 experiments.
 <ul>
@@ -300,6 +302,36 @@ messages.<br>
 
 The other links use plain function calls.<br>
 </ul>
+</ul>
+
+<!-- ===================================================================== -->
+<p> Some general comments on <a
+href="http://erlang.org/doc/apps/wx/index.html">wxErlang</a>.
+
+<ul>
+<li>I am finding that wxErlang is extremely slow. This is particularly true
+because I am redrawing the entire window, containing up to 50 objects, every
+time a single object moves. The Erlang functions which draw those objects are
+moderately computationally demanding, but the redrawing of objects by wxErlang
+is also quite slow.
+
+<li>The main noticeable consequence of the slow drawing is that the simulation
+of the objects progresses many seconds ahead of the window drawing updates.
+Therefore the responses by the wxWidgets erlang-process to the mobile-node
+processes are too slow. Consequently the size of the window, for example, is
+communicated too slowly, and the mobile nodes repeatedly request this
+information, which amplifies the problem.
+
+<li>My conclusion from this is that wxErlang should only be used for low
+bandwidth communications between the window-server process and the active
+processes in any simulation.
+
+<li>More generally, I do wonder whether monitoring of erlang processes via
+messaging could be a serious bottleneck in any system. Too much monitoring can
+impair the performance of the system being monitored. When processes writting in
+C or C++ communicate with UDP packets, the overheads are not so great. So
+perhaps any kind of higher bandwidth monitoring should be assisted by some
+non-Erlang code.
 
 </ul>
 
