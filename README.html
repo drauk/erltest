@@ -1,5 +1,5 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<!-- src/erlang/README.html   2018-3-16   Alan U. Kennington. -->
+<!-- src/erlang/README.html   2018-3-17   Alan U. Kennington. -->
 
 <html lang="en"><head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -328,10 +328,10 @@ processes in any simulation.
 
 <li>More generally, I do wonder whether monitoring of erlang processes via
 messaging could be a serious bottleneck in any system. Too much monitoring can
-impair the performance of the system being monitored. When processes writting in
-C or C++ communicate with UDP packets, the overheads are not so great. So
-perhaps any kind of higher bandwidth monitoring should be assisted by some
-non-Erlang code.
+impair the performance of the system being monitored. When processes written in
+C or C++ communicate with <a href="http://erlang.org/doc/man/gen_udp.html">UDP
+packets</a>, the overheads are not so great, maybe. So perhaps any kind of
+higher bandwidth monitoring should be assisted by some non-Erlang code.
 
 </ul>
 
