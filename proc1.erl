@@ -324,6 +324,8 @@ poissonE(Mu, Ntotal) when is_number(Mu) andalso Mu >= 0
 % The math:floor/1, math:ceil/1, math:round/1 functions output float.
 % The erlang BIFs floor/1, ceil/1, round/1 output integer.
 % And timer:sleep/1 requires integer!
+% However, the BIF floor/1 does not exist prior to Erlang/OTP 20 apparently.
+% Therefore use the BIF trunc/1.
 %
 % Test:
 % >>> proc1:procEpoisson(5, 10).
@@ -354,7 +356,7 @@ procEpoisson(Mu, Ntotal, N, Sum) when is_number(Mu) andalso Mu >= 0
         andalso is_integer(Ntotal) andalso Ntotal >= 1
         andalso is_integer(N) andalso N >= 1 ->
     X = poissonE(Mu),
-    Tsleep = floor(1000 * X + 0.5),
+    Tsleep = trunc(math:floor(1000 * X + 0.5)),
     NewSum = Sum + X,
     io:format("procEpoisson ~p:~n N = ~p, X = ~p, Tsleep = ~p, Sum = ~p~n",
         [self(), N, X, Tsleep, NewSum]),
